@@ -12,8 +12,12 @@ import { createSentimentRoutes } from './social-sentiment'
 import { createExperimentRoutes } from './experiments'
 import { createPersonaRoutes } from './personas'
 import { createBrandAuditRoutes } from './brand-audit'
+import { createZelutoWebhookRoutes } from './zeluto-webhook'
 
 export function registerRoutes(app: Hono<AppEnv>) {
+	// Webhook routes (HMAC-authenticated, no user session)
+	app.route('/webhooks/zeluto', createZelutoWebhookRoutes())
+
 	// Protected API routes
 	app.use('/api/v1/*', authMiddleware())
 	app.route('/api/v1/prospects', createProspectRoutes())
