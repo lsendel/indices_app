@@ -82,3 +82,26 @@ export const dealCreate = z.object({
 })
 
 export type DealCreate = z.infer<typeof dealCreate>
+
+// Experiments
+export const experimentCreate = z.object({
+	name: z.string().min(1).max(200),
+	type: z.enum(['ab_test', 'mab_thompson', 'mab_ucb', 'mab_epsilon']).default('mab_thompson'),
+	targetMetric: z.string().min(1),
+})
+
+export type ExperimentCreate = z.infer<typeof experimentCreate>
+
+export const armCreate = z.object({
+	variantName: z.string().min(1),
+	content: z.record(z.string(), z.any()).default({}),
+})
+
+export type ArmCreate = z.infer<typeof armCreate>
+
+export const armReward = z.object({
+	armId: z.string().uuid(),
+	success: z.boolean(),
+})
+
+export type ArmReward = z.infer<typeof armReward>

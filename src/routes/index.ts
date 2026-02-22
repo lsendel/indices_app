@@ -9,6 +9,7 @@ import { createIngestRoutes } from './ingest'
 import { createSignalRoutes } from './signals'
 import { createAbmRoutes } from './abm'
 import { createSentimentRoutes } from './social-sentiment'
+import { createExperimentRoutes } from './experiments'
 
 export function registerRoutes(app: Hono<AppEnv>) {
 	// Protected API routes
@@ -21,4 +22,5 @@ export function registerRoutes(app: Hono<AppEnv>) {
 	app.route('/api/v1/signals', createSignalRoutes())
 	app.route('/api/v1/accounts', createAbmRoutes())
 	app.route('/api/v1/sentiment', createSentimentRoutes())
+	app.route('/api/v1/experiments', createExperimentRoutes())
 }
