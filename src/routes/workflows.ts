@@ -1,10 +1,10 @@
 import { Hono } from 'hono'
-import { eq, and, desc } from 'drizzle-orm'
+import { eq, and, desc, sql } from 'drizzle-orm'
 import type { AppEnv } from '../app'
 import { validate } from '../middleware/validate'
 import { workflows, workflowNodes, workflowEdges } from '../db/schema'
 import { getDb } from '../db/client'
-import { workflowCreate } from '../types/api'
+import { workflowCreate, paginationQuery } from '../types/api'
 import { NotFoundError } from '../types/errors'
 
 export function createWorkflowRoutes() {
@@ -12,16 +12,17 @@ export function createWorkflowRoutes() {
 
 	// List workflows
 	router.get('/', async (c) => {
+		const { page, limit } = paginationQuery.parse(c.req.query())
 		const db = getDb()
 		const tenantId = c.get('tenantId')!
+		const offset = (page - 1) * limit
 
-		const items = await db
-			.select()
-			.from(workflows)
-			.where(eq(workflows.tenantId, tenantId))
-			.orderBy(desc(workflows.createdAt))
+		const [items, countResult] = await Promise.all([
+			db.select().from(workflows).where(eq(workflows.tenantId, tenantId)).orderBy(desc(workflows.createdAt)).limit(limit).offset(offset),
+			db.select({ count: sql<number>`count(*)` }).from(workflows).where(eq(workflows.tenantId, tenantId)),
+		])
 
-		return c.json({ items })
+		return c.json({ items, total: countResult[0]?.count ?? 0, page, limit })
 	})
 
 	// Create workflow

@@ -18,6 +18,12 @@ export interface OptimizationResult {
 	gradient: string
 }
 
+/**
+ * Run one optimization cycle using the selected strategy (TextGrad, GA, DE, or hybrid).
+ * @param adapter - OpenAI adapter for LLM calls
+ * @param input - Current prompt, output, goal, population, and strategy
+ * @returns TextGrad-improved prompt, GA/DE children, loss value, and gradient text
+ */
 export async function runOptimizationCycle(
 	adapter: OpenAIAdapter,
 	input: OptimizationInput,

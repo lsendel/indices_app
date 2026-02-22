@@ -1,10 +1,10 @@
 import { Hono } from 'hono'
-import { eq, and, desc } from 'drizzle-orm'
+import { eq, and, desc, sql } from 'drizzle-orm'
 import type { AppEnv } from '../app'
 import { validate } from '../middleware/validate'
 import { evolutionCycles, hitlRequests } from '../db/schema'
 import { getDb } from '../db/client'
-import { evolutionStart, hitlDecision } from '../types/api'
+import { evolutionStart, hitlDecision, paginationQuery } from '../types/api'
 import { NotFoundError } from '../types/errors'
 
 export function createEvolutionRoutes() {
@@ -12,16 +12,17 @@ export function createEvolutionRoutes() {
 
 	// List evolution cycles
 	router.get('/cycles', async (c) => {
+		const { page, limit } = paginationQuery.parse(c.req.query())
 		const db = getDb()
 		const tenantId = c.get('tenantId')!
+		const offset = (page - 1) * limit
 
-		const items = await db
-			.select()
-			.from(evolutionCycles)
-			.where(eq(evolutionCycles.tenantId, tenantId))
-			.orderBy(desc(evolutionCycles.createdAt))
+		const [items, countResult] = await Promise.all([
+			db.select().from(evolutionCycles).where(eq(evolutionCycles.tenantId, tenantId)).orderBy(desc(evolutionCycles.createdAt)).limit(limit).offset(offset),
+			db.select({ count: sql<number>`count(*)` }).from(evolutionCycles).where(eq(evolutionCycles.tenantId, tenantId)),
+		])
 
-		return c.json({ items })
+		return c.json({ items, total: countResult[0]?.count ?? 0, page, limit })
 	})
 
 	// Start evolution cycle
@@ -42,16 +43,18 @@ export function createEvolutionRoutes() {
 
 	// List pending HITL requests
 	router.get('/hitl', async (c) => {
+		const { page, limit } = paginationQuery.parse(c.req.query())
 		const db = getDb()
 		const tenantId = c.get('tenantId')!
+		const offset = (page - 1) * limit
+		const condition = and(eq(hitlRequests.tenantId, tenantId), eq(hitlRequests.decision, 'pending'))
 
-		const items = await db
-			.select()
-			.from(hitlRequests)
-			.where(and(eq(hitlRequests.tenantId, tenantId), eq(hitlRequests.decision, 'pending')))
-			.orderBy(desc(hitlRequests.createdAt))
+		const [items, countResult] = await Promise.all([
+			db.select().from(hitlRequests).where(condition).orderBy(desc(hitlRequests.createdAt)).limit(limit).offset(offset),
+			db.select({ count: sql<number>`count(*)` }).from(hitlRequests).where(condition),
+		])
 
-		return c.json({ items })
+		return c.json({ items, total: countResult[0]?.count ?? 0, page, limit })
 	})
 
 	// Decide on a HITL request

@@ -6,17 +6,34 @@ export interface ScoredPrompt {
 	score: number
 }
 
+/**
+ * Create a scored prompt with the score clamped to [0, 1].
+ * @param prompt - Prompt text
+ * @param score - Raw fitness score (will be clamped)
+ * @returns ScoredPrompt with clamped score
+ */
 export function createScoredPrompt(prompt: string, score: number): ScoredPrompt {
 	return { prompt, score: Math.max(0, Math.min(1, score)) }
 }
 
-/** Truncation selection: return the top-N candidates by score (sorted descending, sliced). */
+/**
+ * Truncation selection: return the top-N candidates by score (sorted descending, sliced).
+ * @param population - Candidate prompts with fitness scores
+ * @param count - Number of parents to select
+ * @returns Top-N scored prompts by fitness
+ */
 export function selectParents(population: ScoredPrompt[], count: number): ScoredPrompt[] {
 	const sorted = [...population].sort((a, b) => b.score - a.score)
 	return sorted.slice(0, Math.min(count, sorted.length))
 }
 
-/** GA crossover: combine two parent prompts into a child via LLM. */
+/**
+ * GA crossover: combine two parent prompts into a child via LLM.
+ * @param adapter - OpenAI adapter for LLM calls
+ * @param parent1 - First parent prompt
+ * @param parent2 - Second parent prompt
+ * @returns Child prompt combining elements of both parents
+ */
 export async function crossoverPrompts(
 	adapter: OpenAIAdapter,
 	parent1: string,
@@ -28,7 +45,12 @@ export async function crossoverPrompts(
 	return adapter.generateContent(prompt, systemPrompt)
 }
 
-/** GA mutation: introduce variations into a prompt via LLM. */
+/**
+ * GA mutation: introduce creative variations into a prompt via LLM.
+ * @param adapter - OpenAI adapter for LLM calls
+ * @param original - Prompt to mutate
+ * @returns Mutated prompt with creative variations
+ */
 export async function mutatePrompt(
 	adapter: OpenAIAdapter,
 	original: string,
@@ -39,7 +61,12 @@ export async function mutatePrompt(
 	return adapter.generateContent(prompt, systemPrompt)
 }
 
-/** LLM-guided DE-inspired mutation: use an LLM to identify innovations in donor1 absent from donor2, then apply them to the target. */
+/**
+ * LLM-guided DE-inspired mutation: identify innovations in donor1 absent from donor2, apply to target.
+ * @param adapter - OpenAI adapter for LLM calls
+ * @param input - Target prompt and two donor prompts for differential comparison
+ * @returns Target prompt enhanced with innovations from the donor difference
+ */
 export async function deMutatePrompt(
 	adapter: OpenAIAdapter,
 	input: { target: string; donor1: string; donor2: string },

@@ -6,6 +6,12 @@ const SYSTEM_PROMPT = `You generate AI agent configurations for marketing workfl
 { "name": "agent_name", "description": "what this agent does", "systemPrompt": "system prompt for the agent", "instructionPrompt": "instruction prompt template" }
 Return ONLY the JSON object, no markdown.`
 
+/**
+ * Generate an AI agent configuration for a workflow node via LLM.
+ * @param adapter - OpenAI adapter for LLM calls
+ * @param node - Workflow node to generate an agent for
+ * @returns Agent config from LLM, or a fallback config derived from the node on parse failure
+ */
 export async function generateAgentConfig(
 	adapter: OpenAIAdapter,
 	node: WorkFlowNode,
@@ -36,6 +42,7 @@ Outputs: ${node.outputs.map(o => o.name).join(', ')}`
 		}
 	} catch (e) {
 		if (!(e instanceof SyntaxError)) throw e
+		console.warn('generateAgentConfig: failed to parse LLM response, using fallback', { node: node.name, error: e.message })
 		return {
 			name: node.name,
 			description: node.description,

@@ -5,22 +5,26 @@ import { createWorkflowRoutes } from '../../src/routes/workflows'
 
 vi.mock('../../src/db/client', () => ({
 	getDb: vi.fn().mockReturnValue({
-		select: vi.fn().mockReturnValue({
+		select: vi.fn().mockImplementation((fields?: Record<string, unknown>) => ({
 			from: vi.fn().mockReturnValue({
 				where: vi.fn().mockReturnValue({
-					orderBy: vi.fn().mockResolvedValue([
-						{
-							id: 'wf-1',
-							tenantId: 't1',
-							goal: 'Launch campaign',
-							status: 'pending',
-							createdAt: new Date(),
-							updatedAt: new Date(),
-						},
-					]),
+					orderBy: vi.fn().mockReturnValue({
+						limit: vi.fn().mockReturnValue({
+							offset: vi.fn().mockResolvedValue([
+								{
+									id: 'wf-1',
+									tenantId: 't1',
+									goal: 'Launch campaign',
+									status: 'pending',
+									createdAt: new Date(),
+									updatedAt: new Date(),
+								},
+							]),
+						}),
+					}),
 				}),
 			}),
-		}),
+		})),
 		insert: vi.fn().mockReturnValue({
 			values: vi.fn().mockReturnValue({
 				returning: vi.fn().mockResolvedValue([{
@@ -49,12 +53,14 @@ describe('workflow routes', () => {
 		app.route('/workflows', createWorkflowRoutes())
 	})
 
-	it('GET / lists workflows', async () => {
+	it('GET / lists workflows with pagination', async () => {
 		const res = await app.request('/workflows')
 		expect(res.status).toBe(200)
 		const body = await res.json()
 		expect(body.items).toHaveLength(1)
 		expect(body.items[0].goal).toBe('Launch campaign')
+		expect(body.page).toBe(1)
+		expect(body.limit).toBe(25)
 	})
 
 	it('POST / creates a workflow', async () => {

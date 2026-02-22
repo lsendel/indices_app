@@ -5,15 +5,19 @@ import { createEvolutionRoutes } from '../../src/routes/evolution'
 
 vi.mock('../../src/db/client', () => ({
 	getDb: vi.fn().mockReturnValue({
-		select: vi.fn().mockReturnValue({
+		select: vi.fn().mockImplementation((fields?: Record<string, unknown>) => ({
 			from: vi.fn().mockReturnValue({
 				where: vi.fn().mockReturnValue({
-					orderBy: vi.fn().mockResolvedValue([
-						{ id: 'ec-1', tenantId: 't1', generation: 1, strategy: 'hybrid', status: 'completed' },
-					]),
+					orderBy: vi.fn().mockReturnValue({
+						limit: vi.fn().mockReturnValue({
+							offset: vi.fn().mockResolvedValue([
+								{ id: 'ec-1', tenantId: 't1', generation: 1, strategy: 'hybrid', status: 'completed' },
+							]),
+						}),
+					}),
 				}),
 			}),
-		}),
+		})),
 		insert: vi.fn().mockReturnValue({
 			values: vi.fn().mockReturnValue({
 				returning: vi.fn().mockResolvedValue([{
@@ -52,11 +56,13 @@ describe('evolution routes', () => {
 		app.route('/evolution', createEvolutionRoutes())
 	})
 
-	it('GET /cycles lists evolution cycles', async () => {
+	it('GET /cycles lists evolution cycles with pagination', async () => {
 		const res = await app.request('/evolution/cycles')
 		expect(res.status).toBe(200)
 		const body = await res.json()
 		expect(body.items).toHaveLength(1)
+		expect(body.page).toBe(1)
+		expect(body.limit).toBe(25)
 	})
 
 	it('POST /cycles starts a new evolution cycle', async () => {

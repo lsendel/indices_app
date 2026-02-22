@@ -18,7 +18,12 @@ export interface LearningResult {
 	candidatePrompts: string[]
 }
 
-/** Run one full learning iteration: evaluate campaign → optimize prompts → collect candidates. */
+/**
+ * Run one full learning iteration: evaluate campaign, optimize prompts, collect candidates.
+ * @param adapter - OpenAI adapter for LLM calls
+ * @param context - Current prompt, campaign output/stats, goal, population, and strategy
+ * @returns Evaluation results, optimization results, and candidate prompts for scoring
+ */
 export async function runLearningIteration(
 	adapter: OpenAIAdapter,
 	context: LearningContext,

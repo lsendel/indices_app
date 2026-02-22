@@ -1,6 +1,10 @@
 import type { WorkFlowNode, WorkFlowEdge } from '../../types/workflow'
 
-/** Infer edges by matching output parameter names to input parameter names across nodes. */
+/**
+ * Infer edges by matching output parameter names to input parameter names across nodes.
+ * @param nodes - Workflow nodes with named inputs/outputs
+ * @returns Edges connecting nodes where output names match input names
+ */
 export function inferEdges(nodes: WorkFlowNode[]): WorkFlowEdge[] {
 	const edges: WorkFlowEdge[] = []
 
@@ -18,7 +22,12 @@ export function inferEdges(nodes: WorkFlowNode[]): WorkFlowEdge[] {
 	return edges
 }
 
-/** Find pending nodes whose ALL predecessor nodes are completed. */
+/**
+ * Find pending nodes whose all predecessor nodes are completed.
+ * @param nodes - All workflow nodes with current statuses
+ * @param edges - DAG edges defining dependencies
+ * @returns Nodes that are pending and ready to execute
+ */
 export function getNextNodes(nodes: WorkFlowNode[], edges: WorkFlowEdge[]): WorkFlowNode[] {
 	const nodeMap = new Map(nodes.map(n => [n.name, n]))
 	const incoming = new Map<string, string[]>()
@@ -40,7 +49,12 @@ export function getNextNodes(nodes: WorkFlowNode[], edges: WorkFlowEdge[]): Work
 	})
 }
 
-/** Validate that the graph is a DAG (no cycles) and all edge references exist. */
+/**
+ * Validate that the graph is a DAG: no duplicate names, valid edge refs, and no cycles.
+ * @param nodes - Workflow nodes to validate
+ * @param edges - Edges to validate against the node set
+ * @returns Validation result with error message if invalid
+ */
 export function validateGraph(
 	nodes: WorkFlowNode[],
 	edges: WorkFlowEdge[],
@@ -95,7 +109,12 @@ export function validateGraph(
 	return { valid: true }
 }
 
-/** Return nodes in topological order (dependency-first). */
+/**
+ * Return nodes in topological order (dependency-first) using Kahn's algorithm.
+ * @param nodes - Workflow nodes to sort
+ * @param edges - DAG edges defining execution order
+ * @returns Nodes sorted so that dependencies come before dependents
+ */
 export function topologicalSort(nodes: WorkFlowNode[], edges: WorkFlowEdge[]): WorkFlowNode[] {
 	const nodeMap = new Map(nodes.map(n => [n.name, n]))
 	const inDegree = new Map<string, number>()

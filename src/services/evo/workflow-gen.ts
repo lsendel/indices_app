@@ -11,6 +11,12 @@ export interface GeneratedWorkflow {
 	agents: AgentConfig[]
 }
 
+/**
+ * Generate a complete workflow from a marketing goal: decompose → infer edges → validate → assign agents.
+ * @param adapter - OpenAI adapter for LLM calls
+ * @param goal - High-level marketing goal
+ * @returns Generated workflow with graph and agent configs
+ */
 export async function generateWorkflow(
 	adapter: OpenAIAdapter,
 	goal: string,

@@ -13,6 +13,12 @@ interface RawTask {
 	outputs: { name: string; description: string; required: boolean }[]
 }
 
+/**
+ * Decompose a marketing goal into a sequence of workflow nodes via LLM.
+ * @param adapter - OpenAI adapter for LLM calls
+ * @param goal - High-level marketing goal to decompose
+ * @returns Array of workflow nodes; empty array if LLM returns unparseable output
+ */
 export async function decomposeGoal(
 	adapter: OpenAIAdapter,
 	goal: string,
@@ -36,6 +42,7 @@ export async function decomposeGoal(
 		}))
 	} catch (e) {
 		if (!(e instanceof SyntaxError)) throw e
+		console.warn('decomposeGoal: failed to parse LLM response', { goal, error: e.message })
 		return []
 	}
 }

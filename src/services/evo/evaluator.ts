@@ -19,7 +19,11 @@ export interface EvaluationResult {
 const METRIC_WEIGHT = 0.6
 const QUALITY_WEIGHT = 0.4
 
-/** Compute a 0-1 score from campaign delivery stats. */
+/**
+ * Compute a 0-1 score from campaign delivery stats.
+ * @param stats - Campaign delivery metrics (sent, opened, clicked, etc.)
+ * @returns Weighted score in [0, 1] combining positive signals and penalties
+ */
 export function computeMetricScore(stats: CampaignStats): number {
 	if (stats.sent === 0) return 0
 
@@ -35,7 +39,13 @@ export function computeMetricScore(stats: CampaignStats): number {
 	return Math.max(0, Math.min(1, positiveSignal - penalty))
 }
 
-/** Evaluate a campaign using both metrics and LLM quality assessment. */
+/**
+ * Evaluate a campaign using both metrics and LLM quality assessment.
+ * @param adapter - OpenAI adapter for LLM calls
+ * @param stats - Campaign delivery metrics
+ * @param goal - Campaign goal for LLM quality assessment
+ * @returns Combined evaluation with metric score, quality score, and feedback
+ */
 export async function evaluateCampaign(
 	adapter: OpenAIAdapter,
 	stats: CampaignStats,
@@ -59,6 +69,7 @@ Metric score: ${metricScore.toFixed(3)}`
 		feedback = parsed.feedback
 	} catch (e) {
 		if (!(e instanceof SyntaxError)) throw e
+		console.warn('evaluateCampaign: failed to parse LLM quality assessment, using metrics only', { goal, error: e.message })
 	}
 
 	const combinedScore = qualityScore > 0
