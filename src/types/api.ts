@@ -105,3 +105,35 @@ export const armReward = z.object({
 })
 
 export type ArmReward = z.infer<typeof armReward>
+
+// Personas
+export const personaCreate = z.object({
+	name: z.string().min(1).max(100),
+	description: z.string().optional(),
+	oceanScores: z.object({
+		openness: z.number().min(0).max(1),
+		conscientiousness: z.number().min(0).max(1),
+		extraversion: z.number().min(0).max(1),
+		agreeableness: z.number().min(0).max(1),
+		neuroticism: z.number().min(0).max(1),
+	}),
+	demographics: z.record(z.string(), z.any()).default({}),
+	motivations: z.array(z.string()).default([]),
+	painPoints: z.array(z.string()).default([]),
+	preferredChannels: z.array(z.string()).default([]),
+})
+
+export type PersonaCreate = z.infer<typeof personaCreate>
+
+// Brand Kits
+export const brandKitCreate = z.object({
+	name: z.string().min(1).max(100),
+	brandName: z.string().min(1).max(100),
+	colors: z.array(z.record(z.string(), z.any())).default([]),
+	typography: z.array(z.record(z.string(), z.any())).default([]),
+	voiceAttributes: z.record(z.string(), z.any()).default({}),
+	logoRules: z.array(z.record(z.string(), z.any())).default([]),
+	colorTolerance: z.number().int().min(0).max(255).default(50),
+})
+
+export type BrandKitCreate = z.infer<typeof brandKitCreate>
