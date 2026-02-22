@@ -13,6 +13,7 @@ import { createExperimentRoutes } from './experiments'
 import { createPersonaRoutes } from './personas'
 import { createBrandAuditRoutes } from './brand-audit'
 import { createZelutoWebhookRoutes } from './zeluto-webhook'
+import { createZelutoRoutes } from './zeluto'
 
 export function registerRoutes(app: Hono<AppEnv>) {
 	// Webhook routes (HMAC-authenticated, no user session)
@@ -31,4 +32,5 @@ export function registerRoutes(app: Hono<AppEnv>) {
 	app.route('/api/v1/experiments', createExperimentRoutes())
 	app.route('/api/v1/personas', createPersonaRoutes())
 	app.route('/api/v1/brand-kits', createBrandAuditRoutes())
+	app.route('/api/v1/zeluto', createZelutoRoutes())
 }

@@ -137,3 +137,36 @@ export const brandKitCreate = z.object({
 })
 
 export type BrandKitCreate = z.infer<typeof brandKitCreate>
+
+// Zeluto sync
+export const zelutoConfigCreate = z.object({
+	organizationId: z.string().min(1),
+	userId: z.string().min(1),
+	userRole: z.enum(['owner', 'admin', 'member', 'viewer']).default('admin'),
+	plan: z.enum(['free', 'starter', 'pro', 'enterprise']).default('pro'),
+	webhookSecret: z.string().optional(),
+})
+
+export const contentSyncRequest = z.object({
+	name: z.string().min(1),
+	channel: z.enum(['email', 'sms', 'voice', 'linkedin']),
+	subject: z.string().optional(),
+	bodyHtml: z.string().optional(),
+	bodyText: z.string().optional(),
+})
+
+export const contactSyncRequest = z.object({
+	prospectIds: z.array(z.string().uuid()).min(1).max(100),
+})
+
+export const campaignSyncRequest = z.object({
+	campaignId: z.string().uuid(),
+	action: z.enum(['create', 'send', 'schedule']).default('create'),
+	scheduledAt: z.string().optional(),
+})
+
+export const experimentSyncRequest = z.object({
+	experimentId: z.string().uuid(),
+	zelutoCampaignId: z.number().int().positive(),
+	winningCriteria: z.enum(['opens', 'clicks', 'conversions']).default('clicks'),
+})
