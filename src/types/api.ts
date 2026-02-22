@@ -46,3 +46,39 @@ export const paginationQuery = z.object({
 	page: z.coerce.number().int().min(1).default(1),
 	limit: z.coerce.number().int().min(1).max(100).default(25),
 })
+
+// Signals
+export const signalCapture = z.object({
+	accountId: z.string().min(1),
+	signalType: z.enum(['page_view', 'email_open', 'email_click', 'form_submit', 'demo_request', 'pricing_view', 'content_download', 'social_mention', 'competitor_visit', 'custom']),
+	signalSource: z.string().min(1),
+	strength: z.number().int().min(1).max(100),
+	signalData: z.record(z.string(), z.any()).default({}),
+})
+
+export type SignalCapture = z.infer<typeof signalCapture>
+
+// Accounts (ABM)
+export const accountCreate = z.object({
+	company: z.string().min(1).max(200),
+	domain: z.string().optional(),
+	industry: z.string().optional(),
+	size: z.enum(['1-10', '11-50', '51-200', '201-1000', '1001-5000', '5000+']).optional(),
+	tier: z.enum(['enterprise', 'mid_market', 'smb', 'startup']).default('smb'),
+	metadata: z.record(z.string(), z.any()).optional(),
+})
+
+export type AccountCreate = z.infer<typeof accountCreate>
+
+// Deals
+export const dealCreate = z.object({
+	accountId: z.string().uuid(),
+	name: z.string().min(1).max(200),
+	value: z.number().positive(),
+	stage: z.enum(['discovery', 'qualification', 'proposal', 'negotiation', 'closed_won', 'closed_lost']).default('discovery'),
+	probability: z.number().int().min(0).max(100).default(0),
+	expectedCloseDate: z.string().datetime().optional(),
+	metadata: z.record(z.string(), z.any()).optional(),
+})
+
+export type DealCreate = z.infer<typeof dealCreate>
