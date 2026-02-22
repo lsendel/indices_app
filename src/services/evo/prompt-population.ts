@@ -2,7 +2,12 @@ import type { OpenAIAdapter } from '../../adapters/openai'
 
 export interface ScoredPrompt {
 	prompt: string
+	/** Fitness score, clamped to [0, 1]. */
 	score: number
+}
+
+export function createScoredPrompt(prompt: string, score: number): ScoredPrompt {
+	return { prompt, score: Math.max(0, Math.min(1, score)) }
 }
 
 /** Truncation selection: return the top-N candidates by score (sorted descending, sliced). */

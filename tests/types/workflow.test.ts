@@ -81,13 +81,21 @@ describe('agent types', () => {
 		expect(task.nodeName).toBe('research')
 	})
 
-	it('creates a valid TaskResult', () => {
+	it('creates a valid success TaskResult', () => {
 		const result: TaskResult = {
 			nodeName: 'research',
-			success: true,
+			status: 'success',
 			outputs: { report: 'Market analysis complete' },
-			error: null,
 		}
-		expect(result.success).toBe(true)
+		expect(result.status).toBe('success')
+	})
+
+	it('creates a valid error TaskResult', () => {
+		const result: TaskResult = {
+			nodeName: 'research',
+			status: 'error',
+			error: 'LLM call failed',
+		}
+		expect(result.status).toBe('error')
 	})
 })

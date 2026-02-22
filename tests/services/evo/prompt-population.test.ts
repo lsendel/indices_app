@@ -4,6 +4,7 @@ import {
 	mutatePrompt,
 	deMutatePrompt,
 	selectParents,
+	createScoredPrompt,
 } from '../../../src/services/evo/prompt-population'
 import type { OpenAIAdapter } from '../../../src/adapters/openai'
 
@@ -15,7 +16,7 @@ function mockAdapter(response: string): OpenAIAdapter {
 }
 
 describe('selectParents', () => {
-	it('selects top-scoring candidates as parents (tournament selection)', () => {
+	it('selects top-scoring candidates as parents (truncation selection)', () => {
 		const population = [
 			{ prompt: 'a', score: 0.3 },
 			{ prompt: 'b', score: 0.9 },
@@ -49,8 +50,16 @@ describe('mutatePrompt', () => {
 	})
 })
 
+describe('createScoredPrompt', () => {
+	it('clamps score to [0, 1] range', () => {
+		expect(createScoredPrompt('p', 1.5).score).toBe(1)
+		expect(createScoredPrompt('p', -0.3).score).toBe(0)
+		expect(createScoredPrompt('p', 0.7).score).toBe(0.7)
+	})
+})
+
 describe('deMutatePrompt', () => {
-	it('applies differential evolution mutation via LLM', async () => {
+	it('applies DE-inspired mutation via LLM', async () => {
 		const adapter = mockAdapter('Target prompt enhanced with innovations from donor differences.')
 		const result = await deMutatePrompt(adapter, {
 			target: 'Basic prompt.',

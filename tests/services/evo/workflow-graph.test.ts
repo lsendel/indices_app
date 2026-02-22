@@ -159,4 +159,23 @@ describe('topologicalSort', () => {
 		const sorted = topologicalSort(nodes, edges)
 		expect(sorted.map(n => n.name)).toEqual(['a', 'b', 'c'])
 	})
+
+	it('handles disconnected subgraphs', () => {
+		const nodes = [
+			makeNode('a', [], ['x']),
+			makeNode('b', ['x'], []),
+			makeNode('c', [], ['y']),
+			makeNode('d', ['y'], []),
+		]
+		const edges: WorkFlowEdge[] = [
+			{ source: 'a', target: 'b', priority: 0 },
+			{ source: 'c', target: 'd', priority: 0 },
+		]
+		const sorted = topologicalSort(nodes, edges)
+		expect(sorted).toHaveLength(4)
+		// a before b, c before d (within each subgraph)
+		const names = sorted.map(n => n.name)
+		expect(names.indexOf('a')).toBeLessThan(names.indexOf('b'))
+		expect(names.indexOf('c')).toBeLessThan(names.indexOf('d'))
+	})
 })

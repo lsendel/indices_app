@@ -16,9 +16,6 @@ export interface AgentTask {
 	inputValues: Record<string, string>
 }
 
-export interface TaskResult {
-	nodeName: string
-	success: boolean
-	outputs: Record<string, string>
-	error: string | null
-}
+export type TaskResult =
+	| { nodeName: string; status: 'success'; outputs: Record<string, string> }
+	| { nodeName: string; status: 'error'; error: string }
