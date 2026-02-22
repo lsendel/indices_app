@@ -397,7 +397,7 @@ CREATE TABLE "prompt_versions" (
 	"system_prompt" text NOT NULL,
 	"instruction_prompt" text NOT NULL,
 	"score" real,
-	"is_active" text DEFAULT 'false' NOT NULL,
+	"is_active" boolean DEFAULT false NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint

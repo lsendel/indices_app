@@ -52,4 +52,50 @@ describe('runOptimizationCycle', () => {
 		expect(result.textgradPrompt).toBeDefined()
 		expect(result.gaChildren).toHaveLength(0)
 	})
+
+	it('runs DE mutation when strategy is de and population >= 3', async () => {
+		const adapter: OpenAIAdapter = {
+			analyzeSentiment: vi.fn(),
+			generateContent: vi.fn()
+				// deMutatePrompt response
+				.mockResolvedValueOnce('DE-evolved prompt.'),
+		}
+
+		const result = await runOptimizationCycle(adapter, {
+			currentPrompt: 'Write email.',
+			output: 'Output.',
+			goal: 'Goal.',
+			population: [
+				{ prompt: 'Best', score: 0.9 },
+				{ prompt: 'Mid', score: 0.5 },
+				{ prompt: 'Low', score: 0.2 },
+			],
+			strategy: 'de',
+		})
+
+		expect(result.textgradPrompt).toBeNull()
+		expect(result.gaChildren).toEqual(['DE-evolved prompt.'])
+	})
+
+	it('skips DE when population < 3', async () => {
+		const adapter: OpenAIAdapter = {
+			analyzeSentiment: vi.fn(),
+			generateContent: vi.fn(),
+		}
+
+		const result = await runOptimizationCycle(adapter, {
+			currentPrompt: 'Write email.',
+			output: 'Output.',
+			goal: 'Goal.',
+			population: [
+				{ prompt: 'A', score: 0.5 },
+				{ prompt: 'B', score: 0.3 },
+			],
+			strategy: 'de',
+		})
+
+		expect(result.textgradPrompt).toBeNull()
+		expect(result.gaChildren).toHaveLength(0)
+		expect(adapter.generateContent).not.toHaveBeenCalled()
+	})
 })

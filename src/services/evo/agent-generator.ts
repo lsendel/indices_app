@@ -34,7 +34,8 @@ Outputs: ${node.outputs.map(o => o.name).join(', ')}`
 			inputs: node.inputs,
 			outputs: node.outputs,
 		}
-	} catch {
+	} catch (e) {
+		if (!(e instanceof SyntaxError)) throw e
 		return {
 			name: node.name,
 			description: node.description,

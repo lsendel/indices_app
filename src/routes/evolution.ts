@@ -58,6 +58,7 @@ export function createEvolutionRoutes() {
 	router.post('/hitl/:id/decide', validate('json', hitlDecision), async (c) => {
 		const db = getDb()
 		const id = c.req.param('id')
+		const tenantId = c.get('tenantId')!
 		const userId = c.get('userId')!
 		const data = c.req.valid('json')
 
@@ -69,7 +70,7 @@ export function createEvolutionRoutes() {
 				modifications: data.modifications,
 				decidedAt: new Date(),
 			})
-			.where(and(eq(hitlRequests.id, id), eq(hitlRequests.decision, 'pending')))
+			.where(and(eq(hitlRequests.id, id), eq(hitlRequests.tenantId, tenantId), eq(hitlRequests.decision, 'pending')))
 			.returning()
 
 		if (!updated) throw new NotFoundError('HITL request', id)

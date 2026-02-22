@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid, integer, real, index } from 'drizzle-orm/pg-core'
+import { pgTable, text, timestamp, uuid, integer, real, boolean, index } from 'drizzle-orm/pg-core'
 import { agentConfigs } from './agent-configs'
 
 export const promptVersions = pgTable('prompt_versions', {
@@ -8,7 +8,7 @@ export const promptVersions = pgTable('prompt_versions', {
 	systemPrompt: text('system_prompt').notNull(),
 	instructionPrompt: text('instruction_prompt').notNull(),
 	score: real('score'),
-	isActive: text('is_active', { enum: ['true', 'false'] }).default('false').notNull(),
+	isActive: boolean('is_active').default(false).notNull(),
 	createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 }, (table) => [
 	index('idx_prompt_versions_agent').on(table.agentConfigId),

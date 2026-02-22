@@ -34,7 +34,8 @@ export async function decomposeGoal(
 			status: 'pending' as const,
 			agentId: null,
 		}))
-	} catch {
+	} catch (e) {
+		if (!(e instanceof SyntaxError)) throw e
 		return []
 	}
 }

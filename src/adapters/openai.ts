@@ -15,8 +15,7 @@ export function createOpenAIAdapter(): OpenAIAdapter {
 	return {
 		async analyzeSentiment(text: string, brand: string) {
 			if (!client) {
-				console.warn('OpenAI not configured, using fallback sentiment')
-				return { score: 0, themes: [] }
+				throw new Error('OpenAI API key not configured — set OPENAI_API_KEY environment variable')
 			}
 
 			const response = await client.chat.completions.create({
@@ -36,8 +35,7 @@ export function createOpenAIAdapter(): OpenAIAdapter {
 
 		async generateContent(prompt: string, systemPrompt?: string) {
 			if (!client) {
-				console.warn('OpenAI not configured, returning placeholder')
-				return '[Content generation requires OPENAI_API_KEY]'
+				throw new Error('OpenAI API key not configured — set OPENAI_API_KEY environment variable')
 			}
 
 			const response = await client.chat.completions.create({

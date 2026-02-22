@@ -1,6 +1,6 @@
 import type { OpenAIAdapter } from '../../adapters/openai'
 import { computeLoss, computeGradient, applyGradient } from './textgrad'
-import { selectParents, crossoverPrompts, mutatePrompt } from './prompt-population'
+import { selectParents, crossoverPrompts, mutatePrompt, deMutatePrompt } from './prompt-population'
 import type { ScoredPrompt } from './prompt-population'
 
 export interface OptimizationInput {
@@ -29,6 +29,7 @@ export async function runOptimizationCycle(
 
 	const useTextGrad = input.strategy === 'textgrad' || input.strategy === 'hybrid'
 	const useGA = (input.strategy === 'ga' || input.strategy === 'hybrid') && input.population.length >= 2
+	const useDE = (input.strategy === 'de' || input.strategy === 'hybrid') && input.population.length >= 3
 
 	// TextGrad phase
 	if (useTextGrad) {
@@ -59,6 +60,17 @@ export async function runOptimizationCycle(
 
 		const mutated = await mutatePrompt(adapter, child)
 		gaChildren.push(mutated)
+	}
+
+	// DE phase
+	if (useDE) {
+		const sorted = [...input.population].sort((a, b) => b.score - a.score)
+		const deChild = await deMutatePrompt(adapter, {
+			target: sorted[0].prompt,
+			donor1: sorted[1].prompt,
+			donor2: sorted[2].prompt,
+		})
+		gaChildren.push(deChild)
 	}
 
 	return { textgradPrompt, gaChildren, loss, gradient }

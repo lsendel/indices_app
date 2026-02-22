@@ -42,7 +42,8 @@ Rate the quality (0=perfect match to goal, 1=completely wrong).`
 			loss: Math.max(0, Math.min(1, parsed.loss)),
 			analysis: parsed.analysis,
 		}
-	} catch {
+	} catch (e) {
+		if (!(e instanceof SyntaxError)) throw e
 		return { loss: 1, analysis: 'Failed to evaluate output' }
 	}
 }
@@ -61,7 +62,8 @@ Suggest specific improvements.`
 	try {
 		const response = await adapter.generateContent(prompt, systemPrompt)
 		return JSON.parse(response) as GradientResult
-	} catch {
+	} catch (e) {
+		if (!(e instanceof SyntaxError)) throw e
 		return { gradient: 'Unable to compute gradient', suggestedPrompt: input.prompt }
 	}
 }

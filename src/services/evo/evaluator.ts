@@ -57,8 +57,8 @@ Metric score: ${metricScore.toFixed(3)}`
 		const parsed = JSON.parse(response) as { qualityScore: number; feedback: string }
 		qualityScore = Math.max(0, Math.min(1, parsed.qualityScore))
 		feedback = parsed.feedback
-	} catch {
-		// LLM unavailable — fall back to metrics only
+	} catch (e) {
+		if (!(e instanceof SyntaxError)) throw e
 	}
 
 	const combinedScore = qualityScore > 0
