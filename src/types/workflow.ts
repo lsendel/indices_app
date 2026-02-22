@@ -7,6 +7,7 @@ export interface Parameter {
 export type NodeStatus = 'pending' | 'running' | 'completed' | 'failed' | 'awaiting_approval'
 
 export interface WorkFlowNode {
+	id?: string
 	name: string
 	description: string
 	inputs: Parameter[]

@@ -45,7 +45,13 @@ export function validateGraph(
 	nodes: WorkFlowNode[],
 	edges: WorkFlowEdge[],
 ): { valid: boolean; error?: string } {
-	const nodeNames = new Set(nodes.map(n => n.name))
+	const nodeNames = new Set<string>()
+	for (const node of nodes) {
+		if (nodeNames.has(node.name)) {
+			return { valid: false, error: `Duplicate node name: ${node.name}` }
+		}
+		nodeNames.add(node.name)
+	}
 
 	for (const edge of edges) {
 		if (!nodeNames.has(edge.source)) {

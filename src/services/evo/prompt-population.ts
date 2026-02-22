@@ -5,7 +5,7 @@ export interface ScoredPrompt {
 	score: number
 }
 
-/** Tournament selection: return the top-N candidates by score. */
+/** Truncation selection: return the top-N candidates by score (sorted descending, sliced). */
 export function selectParents(population: ScoredPrompt[], count: number): ScoredPrompt[] {
 	const sorted = [...population].sort((a, b) => b.score - a.score)
 	return sorted.slice(0, Math.min(count, sorted.length))
@@ -34,7 +34,7 @@ export async function mutatePrompt(
 	return adapter.generateContent(prompt, systemPrompt)
 }
 
-/** DE mutation: apply differential evolution using donor1-donor2 difference to target. */
+/** LLM-guided DE-inspired mutation: use an LLM to identify innovations in donor1 absent from donor2, then apply them to the target. */
 export async function deMutatePrompt(
 	adapter: OpenAIAdapter,
 	input: { target: string; donor1: string; donor2: string },

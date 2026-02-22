@@ -83,4 +83,18 @@ describe('HITL service', () => {
 		}
 		expect(isExpired(expired)).toBe(true)
 	})
+
+	it('throws when resolving an expired request', () => {
+		const req = createHitlRequest({
+			tenantId: 't1',
+			workflowId: 'w1',
+			nodeId: 'n1',
+			context: {},
+		})
+		const expired: HitlRequest = {
+			...req,
+			expiresAt: new Date(Date.now() - 1000),
+		}
+		expect(() => resolveHitlRequest(expired, 'approved', 'user-1')).toThrow('expired')
+	})
 })

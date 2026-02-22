@@ -133,6 +133,16 @@ describe('validateGraph', () => {
 		expect(result.valid).toBe(false)
 		expect(result.error).toContain('ghost')
 	})
+
+	it('detects duplicate node names', () => {
+		const nodes = [
+			makeNode('a', [], ['x']),
+			makeNode('a', ['x'], ['y']),
+		]
+		const result = validateGraph(nodes, [])
+		expect(result.valid).toBe(false)
+		expect(result.error).toContain('Duplicate node name: a')
+	})
 })
 
 describe('topologicalSort', () => {

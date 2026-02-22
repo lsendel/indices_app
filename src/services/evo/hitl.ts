@@ -1,6 +1,7 @@
 import { ValidationError } from '../../types/errors'
 
 export type HitlDecisionType = 'pending' | 'approved' | 'rejected' | 'modified'
+export type HitlResolution = 'approved' | 'rejected' | 'modified'
 
 export interface HitlRequest {
 	tenantId: string
@@ -40,12 +41,15 @@ export function createHitlRequest(input: CreateHitlInput): HitlRequest {
 
 export function resolveHitlRequest(
 	request: HitlRequest,
-	decision: HitlDecisionType,
+	decision: HitlResolution,
 	decidedBy: string,
 	modifications?: Record<string, unknown>,
 ): HitlRequest {
 	if (request.decision !== 'pending') {
 		throw new ValidationError(`HITL request is not pending (current: ${request.decision})`)
+	}
+	if (isExpired(request)) {
+		throw new ValidationError('HITL request has expired')
 	}
 
 	return {
