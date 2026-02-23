@@ -21,10 +21,15 @@ import { createFeedRoutes } from './feeds'
 import { createMcpRoutes } from './mcp'
 import { createSseRoutes } from './sse'
 import { createAnalyticsRoutes } from './analytics'
+import { createPlatformRoutes } from './platforms'
+import { createPublishRoutes } from './publish'
+import { createMetaWebhookRoutes } from './webhooks/meta'
+import { createEngagementRoutes } from './engagement'
 
 export function registerRoutes(app: Hono<AppEnv>) {
 	// Webhook routes (HMAC-authenticated, no user session)
 	app.route('/webhooks/zeluto', createZelutoWebhookRoutes())
+	app.route('/webhooks/meta', createMetaWebhookRoutes())
 
 	// Protected API routes
 	app.use('/api/v1/*', authMiddleware())
@@ -47,4 +52,7 @@ export function registerRoutes(app: Hono<AppEnv>) {
 	app.route('/api/v1/mcp', createMcpRoutes())
 	app.route('/api/v1/sse', createSseRoutes())
 	app.route('/api/v1/analytics', createAnalyticsRoutes())
+	app.route('/api/v1/platforms', createPlatformRoutes())
+	app.route('/api/v1/publish', createPublishRoutes())
+	app.route('/api/v1/engagement', createEngagementRoutes())
 }

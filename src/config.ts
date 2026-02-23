@@ -20,6 +20,12 @@ export const configSchema = z.object({
 	ZELUTO_WEBHOOK_SECRET: z.string().default('dev-webhook-secret'),
 	CORS_ORIGINS: z.string().default('http://localhost:3000'),
 	REDIS_URL: z.string().optional(),
+	META_APP_ID: z.string().optional(),
+	META_APP_SECRET: z.string().optional(),
+	TIKTOK_CLIENT_KEY: z.string().optional(),
+	TIKTOK_CLIENT_SECRET: z.string().optional(),
+	LINKEDIN_CLIENT_ID: z.string().optional(),
+	LINKEDIN_CLIENT_SECRET: z.string().optional(),
 })
 
 export type Config = z.infer<typeof configSchema>
