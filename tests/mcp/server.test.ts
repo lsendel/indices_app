@@ -7,7 +7,7 @@ describe('MCP server', () => {
 		expect(server).toBeDefined()
 	})
 
-	it('registers all 8 intelligence tools', () => {
+	it('registers all 11 intelligence tools', () => {
 		const names = getMcpToolNames()
 		expect(names).toContain('get_sentiment_analysis')
 		expect(names).toContain('get_hot_accounts')
@@ -17,6 +17,9 @@ describe('MCP server', () => {
 		expect(names).toContain('get_competitive_intel')
 		expect(names).toContain('audit_brand_content')
 		expect(names).toContain('generate_workflow')
-		expect(names).toHaveLength(8)
+		expect(names).toContain('get_loop_status')
+		expect(names).toContain('get_prompt_lineage')
+		expect(names).toContain('get_loop_insights')
+		expect(names).toHaveLength(11)
 	})
 })
