@@ -246,15 +246,56 @@ export const feedSubscriptionUpdate = feedSubscriptionCreate.partial().extend({
 
 export type FeedSubscriptionUpdate = z.infer<typeof feedSubscriptionUpdate>
 
+// Batch payload (Phase 5 — Rust worker callback)
+export const batchPayload = z.object({
+	job_id: z.string(),
+	batch_index: z.number().int().min(0),
+	is_final: z.boolean(),
+	tenant_id: z.string().optional(),
+	pages: z.array(z.object({
+		url: z.string(),
+		title: z.string(),
+		content: z.string().optional(),
+		author: z.string().optional(),
+		content_hash: z.string().optional(),
+	})).optional(),
+	posts: z.array(z.object({
+		platform: z.string(),
+		title: z.string().optional(),
+		content: z.string().optional(),
+		author: z.string().optional(),
+		url: z.string().optional(),
+		engagement: z.record(z.string(), z.unknown()).optional(),
+		posted_at: z.string().optional(),
+	})).optional(),
+})
+
+export type BatchPayload = z.infer<typeof batchPayload>
+
 // Scrape job dispatch (Phase 5)
-export const scrapeJobDispatch = z.object({
-	jobType: z.enum(['web_crawl', 'social_scrape', 'feed_ingest']),
-	seedUrls: z.array(z.string().url()).optional(),
-	subreddits: z.array(z.string()).optional(),
+const webCrawlJob = z.object({
+	jobType: z.literal('web_crawl'),
+	seedUrls: z.array(z.string().url()).min(1),
 	keywords: z.array(z.string()).optional(),
 	maxPages: z.number().int().min(1).max(1000).default(100),
-	feedSubscriptionId: z.string().uuid().optional(),
 })
+
+const socialScrapeJob = z.object({
+	jobType: z.literal('social_scrape'),
+	subreddits: z.array(z.string()).min(1),
+	keywords: z.array(z.string()).optional(),
+	maxPages: z.number().int().min(1).max(1000).default(100),
+})
+
+const feedIngestJob = z.object({
+	jobType: z.literal('feed_ingest'),
+	feedSubscriptionId: z.string().uuid(),
+	maxPages: z.number().int().min(1).max(1000).default(100),
+})
+
+export const scrapeJobDispatch = z.discriminatedUnion('jobType', [
+	webCrawlJob, socialScrapeJob, feedIngestJob,
+])
 
 export type ScrapeJobDispatch = z.infer<typeof scrapeJobDispatch>
 

@@ -1,6 +1,7 @@
-import { eq } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import { getDb } from '../../db/client'
 import { feedSubscriptions } from '../../db/schema'
+import { logger } from '../../utils/logger'
 
 export interface FeedScheduleInfo {
 	id: string
@@ -33,10 +34,22 @@ export async function markFetched(feedId: string, contentHash?: string) {
 
 export async function recordFeedError(feedId: string, error: string) {
 	const db = getDb()
-	const [feed] = await db.select().from(feedSubscriptions).where(eq(feedSubscriptions.id, feedId))
-	if (!feed) return
-	const newCount = feed.errorCount + 1
-	await db.update(feedSubscriptions).set({
-		errorCount: newCount, lastError: error, active: newCount >= 5 ? false : feed.active, updatedAt: new Date(),
-	}).where(eq(feedSubscriptions.id, feedId))
+	const [updated] = await db
+		.update(feedSubscriptions)
+		.set({
+			errorCount: sql`${feedSubscriptions.errorCount} + 1`,
+			lastError: error,
+			active: sql`CASE WHEN ${feedSubscriptions.errorCount} + 1 >= 5 THEN false ELSE ${feedSubscriptions.active} END`,
+			updatedAt: new Date(),
+		})
+		.where(eq(feedSubscriptions.id, feedId))
+		.returning()
+
+	if (!updated) {
+		logger.warn({ feedId }, 'recordFeedError: feed not found')
+		return
+	}
+	if (!updated.active) {
+		logger.warn({ feedId, errorCount: updated.errorCount }, 'Feed deactivated after consecutive errors')
+	}
 }

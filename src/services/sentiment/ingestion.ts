@@ -1,4 +1,5 @@
 import { createHash } from 'crypto'
+import type { BatchPayload } from '../../types/api'
 
 export interface NormalizedArticle {
 	tenantId: string
@@ -10,28 +11,6 @@ export interface NormalizedArticle {
 	contentHash: string
 	metadata: Record<string, unknown>
 	publishedAt: Date | null
-}
-
-interface BatchPayload {
-	job_id: string
-	batch_index: number
-	is_final: boolean
-	pages?: Array<{
-		url: string
-		title: string
-		content?: string
-		author?: string
-		content_hash?: string
-	}>
-	posts?: Array<{
-		platform: string
-		title?: string
-		content?: string
-		author?: string
-		url?: string
-		engagement?: Record<string, unknown>
-		posted_at?: string
-	}>
 }
 
 /** Normalize a batch from the Rust scraper worker into article records for DB insert */

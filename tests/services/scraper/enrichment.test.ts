@@ -8,12 +8,13 @@ describe('enrichArticles', () => {
 			analyzeSentiment: vi.fn().mockResolvedValue({ score: 0.7, themes: ['innovation'] }),
 			generateContent: vi.fn(),
 		}
-		const results = await enrichArticles(adapter, [
+		const { results, failedCount } = await enrichArticles(adapter, [
 			{ id: 'a1', title: 'Great launch', content: 'Product exceeded expectations.', brand: 'Acme' },
 			{ id: 'a2', title: 'No body', content: null, brand: 'Acme' },
 		])
 		expect(results).toHaveLength(1)
 		expect(results[0].sentiment.score).toBe(0.7)
+		expect(failedCount).toBe(0)
 	})
 
 	it('throws when all articles fail enrichment', async () => {
@@ -33,11 +34,12 @@ describe('enrichArticles', () => {
 				.mockRejectedValueOnce(new Error('LLM error')),
 			generateContent: vi.fn(),
 		}
-		const results = await enrichArticles(adapter, [
+		const { results, failedCount } = await enrichArticles(adapter, [
 			{ id: 'a1', title: 'Good', content: 'Works fine.', brand: 'B' },
 			{ id: 'a2', title: 'Bad', content: 'Fails here.', brand: 'B' },
 		])
 		expect(results).toHaveLength(1)
 		expect(results[0].articleId).toBe('a1')
+		expect(failedCount).toBe(1)
 	})
 })

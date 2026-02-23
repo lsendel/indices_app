@@ -7,6 +7,7 @@ vi.mock('../../src/services/scraper/job-tracker', () => ({
 	createJob: vi.fn().mockResolvedValue({ id: 'job-new', tenantId: 't1', jobType: 'web_crawl', status: 'pending' }),
 	getJobStatus: vi.fn().mockResolvedValue({ id: 'job-1', status: 'running', pagesScraped: 42 }),
 	cancelJob: vi.fn().mockResolvedValue({ id: 'job-1', status: 'cancelled' }),
+	failJob: vi.fn().mockResolvedValue(undefined),
 }))
 
 vi.mock('../../src/services/scraper/dispatcher', () => ({

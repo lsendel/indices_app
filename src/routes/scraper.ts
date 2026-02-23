@@ -6,9 +6,10 @@ import { scrapeJobs } from '../db/schema'
 import { getDb } from '../db/client'
 import { scrapeJobDispatch } from '../types/api'
 import { NotFoundError } from '../types/errors'
-import { createJob, getJobStatus, cancelJob } from '../services/scraper/job-tracker'
+import { createJob, getJobStatus, cancelJob, failJob } from '../services/scraper/job-tracker'
 import { dispatchScrapeJob } from '../services/scraper/dispatcher'
 import { getConfig } from '../config'
+import { logger } from '../utils/logger'
 
 export function createScraperRoutes() {
 	const router = new Hono<AppEnv>()
@@ -24,17 +25,18 @@ export function createScraperRoutes() {
 		const tenantId = c.get('tenantId')!
 		const data = c.req.valid('json')
 		const config = getConfig()
-		const callbackUrl = `${config.BETTER_AUTH_URL}/api/v1/ingest/batch`
+		const callbackUrl = `${config.BETTER_AUTH_URL}/webhooks/ingest/batch`
 
-		const job = await createJob(tenantId, {
-			jobType: data.jobType, seedUrls: data.seedUrls, subreddits: data.subreddits,
-			keywords: data.keywords, maxPages: data.maxPages, feedSubscriptionId: data.feedSubscriptionId,
-		}, callbackUrl)
+		const job = await createJob(tenantId, data, callbackUrl)
 
 		dispatchScrapeJob({
-			jobId: job.id, callbackUrl,
-			config: { jobType: data.jobType, seedUrls: data.seedUrls, subreddits: data.subreddits, keywords: data.keywords, maxPages: data.maxPages },
-		}).catch(err => console.error('Failed to dispatch scrape job', { jobId: job.id, error: err }))
+			jobId: job.id,
+			callbackUrl,
+			config: data,
+		}).catch(async (err) => {
+			logger.error({ jobId: job.id, error: err }, 'Failed to dispatch scrape job')
+			failJob(job.id, err instanceof Error ? err.message : 'Dispatch failed').catch(() => {})
+		})
 
 		return c.json(job, 201)
 	})

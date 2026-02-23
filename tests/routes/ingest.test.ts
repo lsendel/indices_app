@@ -13,6 +13,10 @@ vi.mock('../../src/services/scraper/dispatcher', () => ({
 	verifySignature: vi.fn().mockReturnValue(true),
 }))
 
+vi.mock('../../src/config', () => ({
+	getConfig: vi.fn().mockReturnValue({ SCRAPER_SHARED_SECRET: 'test-secret' }),
+}))
+
 describe('ingest routes', () => {
 	let app: Hono<AppEnv>
 
@@ -40,5 +44,67 @@ describe('ingest routes', () => {
 			body: JSON.stringify({ job_id: '1', batch_index: 0, is_final: true }),
 		})
 		expect(res.status).toBe(401)
+	})
+
+	it('rejects invalid JSON body', async () => {
+		const timestamp = Math.floor(Date.now() / 1000).toString()
+		const res = await app.request('/ingest/batch', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json', 'x-signature': 'sig', 'x-timestamp': timestamp },
+			body: 'not json',
+		})
+		expect(res.status).toBe(400)
+		const body = await res.json()
+		expect(body.error).toBe('Invalid JSON body')
+	})
+
+	it('rejects payload missing tenant_id', async () => {
+		const timestamp = Math.floor(Date.now() / 1000).toString()
+		const res = await app.request('/ingest/batch', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json', 'x-signature': 'sig', 'x-timestamp': timestamp },
+			body: JSON.stringify({ job_id: 'job-1', batch_index: 0, is_final: false }),
+		})
+		expect(res.status).toBe(400)
+		const body = await res.json()
+		expect(body.error).toBe('Missing tenant_id in payload')
+	})
+
+	it('rejects non-numeric timestamp', async () => {
+		const res = await app.request('/ingest/batch', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json', 'x-signature': 'sig', 'x-timestamp': 'abc' },
+			body: JSON.stringify({ job_id: '1', batch_index: 0, is_final: true }),
+		})
+		expect(res.status).toBe(401)
+		const body = await res.json()
+		expect(body.error).toBe('Invalid timestamp')
+	})
+
+	it('rejects stale timestamps', async () => {
+		const staleTimestamp = (Math.floor(Date.now() / 1000) - 600).toString()
+		const res = await app.request('/ingest/batch', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json', 'x-signature': 'sig', 'x-timestamp': staleTimestamp },
+			body: JSON.stringify({ job_id: '1', batch_index: 0, is_final: true }),
+		})
+		expect(res.status).toBe(401)
+		const body = await res.json()
+		expect(body.error).toBe('Timestamp too old')
+	})
+
+	it('rejects invalid signatures', async () => {
+		const { verifySignature } = await import('../../src/services/scraper/dispatcher')
+		vi.mocked(verifySignature).mockReturnValueOnce(false)
+
+		const timestamp = Math.floor(Date.now() / 1000).toString()
+		const res = await app.request('/ingest/batch', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json', 'x-signature': 'bad-sig', 'x-timestamp': timestamp },
+			body: JSON.stringify({ job_id: '1', batch_index: 0, is_final: true, tenant_id: 't1' }),
+		})
+		expect(res.status).toBe(401)
+		const body = await res.json()
+		expect(body.error).toBe('Invalid signature')
 	})
 })
