@@ -206,3 +206,39 @@ export const promptVersionCreate = z.object({
 })
 
 export type PromptVersionCreate = z.infer<typeof promptVersionCreate>
+
+// Feed subscriptions (Phase 5)
+export const feedSubscriptionCreate = z.object({
+	name: z.string().min(1).max(200),
+	feedUrl: z.string().url(),
+	feedType: z.enum(['rss', 'atom', 'news']).default('rss'),
+	schedule: z.string().default('0 */6 * * *'),
+	keywords: z.string().optional(),
+	maxItems: z.number().int().min(1).max(500).default(50),
+})
+
+export type FeedSubscriptionCreate = z.infer<typeof feedSubscriptionCreate>
+
+export const feedSubscriptionUpdate = feedSubscriptionCreate.partial().extend({
+	active: z.boolean().optional(),
+})
+
+export type FeedSubscriptionUpdate = z.infer<typeof feedSubscriptionUpdate>
+
+// Scrape job dispatch (Phase 5)
+export const scrapeJobDispatch = z.object({
+	jobType: z.enum(['web_crawl', 'social_scrape', 'feed_ingest']),
+	seedUrls: z.array(z.string().url()).optional(),
+	subreddits: z.array(z.string()).optional(),
+	keywords: z.array(z.string()).optional(),
+	maxPages: z.number().int().min(1).max(1000).default(100),
+	feedSubscriptionId: z.string().uuid().optional(),
+})
+
+export type ScrapeJobDispatch = z.infer<typeof scrapeJobDispatch>
+
+export const scrapeJobCancel = z.object({
+	jobId: z.string().uuid(),
+})
+
+export type ScrapeJobCancel = z.infer<typeof scrapeJobCancel>
