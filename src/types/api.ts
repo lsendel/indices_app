@@ -343,3 +343,33 @@ export type WordpressConnect = z.infer<typeof wordpressConnect>
 export type BlogConnect = z.infer<typeof blogConnect>
 export type PublishRequest = z.infer<typeof publishRequest>
 export type PublishBatchRequest = z.infer<typeof publishBatchRequest>
+
+// Content generation (Phase 7)
+const channelEnum = z.enum(['email', 'sms', 'voice', 'whatsapp', 'linkedin', 'facebook', 'instagram', 'tiktok', 'youtube', 'vimeo', 'video'])
+
+export const contentBrief = z.object({
+	goal: z.string().min(1).max(500),
+	product: z.string().min(1).max(500),
+	audience: z.string().min(1).max(500),
+	tone: z.string().min(1).max(100),
+	keywords: z.array(z.string()).optional(),
+	campaignId: z.string().uuid().optional(),
+	brandKitId: z.string().uuid().optional(),
+})
+
+export type ContentBriefInput = z.infer<typeof contentBrief>
+
+export const contentGenerate = z.object({
+	channel: channelEnum,
+	brief: contentBrief,
+	provider: z.string().optional(),
+})
+
+export type ContentGenerate = z.infer<typeof contentGenerate>
+
+export const contentGenerateBatch = z.object({
+	channels: z.array(channelEnum).min(1),
+	brief: contentBrief,
+})
+
+export type ContentGenerateBatch = z.infer<typeof contentGenerateBatch>
