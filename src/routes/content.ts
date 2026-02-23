@@ -8,6 +8,21 @@ import { generateForChannel } from '../adapters/channels'
 export function createContentRoutes() {
 	const app = new Hono<AppEnv>()
 
+	app.get('/providers', async (c) => {
+		const { createLLMRouterFromConfig } = await import('../adapters/llm/factory')
+		const { getConfig } = await import('../config')
+		try {
+			const router = createLLMRouterFromConfig(getConfig())
+			const providers = router.listProviders().map((p) => ({
+				name: p.name,
+				capabilities: [...p.capabilities],
+			}))
+			return c.json({ providers })
+		} catch {
+			return c.json({ providers: [] })
+		}
+	})
+
 	app.get('/channels', (c) => {
 		const channels = SUPPORTED_CHANNELS.map((name) => ({
 			name,

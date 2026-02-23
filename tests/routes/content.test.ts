@@ -42,4 +42,11 @@ describe('content routes', () => {
 		})
 		expect(res.status).toBe(422)
 	})
+
+	it('GET /api/v1/content/providers should list available providers', async () => {
+		const res = await app.request('/api/v1/content/providers')
+		expect(res.status).toBe(200)
+		const body = await res.json()
+		expect(body.providers).toBeInstanceOf(Array)
+	})
 })
