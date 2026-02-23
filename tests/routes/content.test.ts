@@ -1,8 +1,16 @@
-import { describe, it, expect } from 'vitest'
-import { createApp } from '../../src/app'
+import { describe, it, expect, beforeEach } from 'vitest'
+import { Hono } from 'hono'
+import type { AppEnv } from '../../src/app'
+import { createContentRoutes } from '../../src/routes/content'
 
 describe('content routes', () => {
-	const app = createApp()
+	let app: Hono<AppEnv>
+
+	beforeEach(() => {
+		app = new Hono<AppEnv>()
+		app.use('*', async (c, next) => { c.set('tenantId', 't1'); await next() })
+		app.route('/api/v1/content', createContentRoutes())
+	})
 
 	it('GET /api/v1/content/channels should list all supported channels', async () => {
 		const res = await app.request('/api/v1/content/channels')
