@@ -45,7 +45,7 @@ export const campaignCreate = z.object({
 	name: z.string().min(1).max(200),
 	goal: z.string().min(1).max(200),
 	productDescription: z.string().max(500).optional(),
-	channels: z.array(z.enum(['email', 'sms', 'voice', 'linkedin'])).min(1),
+	channels: z.array(z.enum(['email', 'sms', 'voice', 'whatsapp', 'linkedin', 'facebook', 'instagram', 'tiktok', 'youtube', 'vimeo', 'video'])).min(1),
 	prospectId: z.string().uuid().optional(),
 	metadata: z.record(z.string(), z.any()).optional(),
 })
@@ -170,7 +170,7 @@ export const zelutoConfigCreate = z.object({
 
 export const contentSyncRequest = z.object({
 	name: z.string().min(1),
-	channel: z.enum(['email', 'sms', 'voice', 'linkedin']),
+	channel: z.enum(['email', 'sms', 'voice', 'whatsapp', 'linkedin', 'facebook', 'instagram', 'tiktok', 'youtube', 'vimeo', 'video']),
 	subject: z.string().optional(),
 	bodyHtml: z.string().optional(),
 	bodyText: z.string().optional(),

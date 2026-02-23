@@ -25,7 +25,7 @@ export const campaigns = pgTable('campaigns', {
 export const channelResults = pgTable('channel_results', {
   id: uuid('id').defaultRandom().primaryKey(),
   campaignId: uuid('campaign_id').notNull().references(() => campaigns.id, { onDelete: 'cascade' }),
-  channel: text('channel', { enum: ['email', 'sms', 'voice', 'linkedin'] }).notNull(),
+  channel: text('channel', { enum: ['email', 'sms', 'voice', 'whatsapp', 'linkedin', 'facebook', 'instagram', 'tiktok', 'youtube', 'vimeo', 'video'] }).notNull(),
   status: text('status', {
     enum: ['pending', 'sent', 'queued', 'delivered', 'failed', 'skipped'],
   }).default('pending').notNull(),
