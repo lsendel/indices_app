@@ -1,5 +1,7 @@
 import { createHmac, timingSafeEqual } from 'crypto'
 import { getConfig } from '../../config'
+import { logger } from '../../utils/logger'
+import type { ScrapeJobDispatch } from '../../types/api'
 
 export function signPayload(body: string, timestamp: string, secret: string): string {
 	return createHmac('sha256', secret).update(`${timestamp}${body}`).digest('hex')
@@ -14,7 +16,12 @@ export function verifySignature(
 	const expected = signPayload(body, timestamp, secret)
 	try {
 		return timingSafeEqual(Buffer.from(signature), Buffer.from(expected))
-	} catch {
+	} catch (e) {
+		logger.warn({
+			error: e instanceof Error ? e.message : String(e),
+			signatureLength: signature?.length,
+			expectedLength: expected?.length,
+		}, 'verifySignature: timing-safe comparison failed')
 		return false
 	}
 }
@@ -22,13 +29,7 @@ export function verifySignature(
 export async function dispatchScrapeJob(job: {
 	jobId: string
 	callbackUrl: string
-	config: {
-		seedUrls?: string[]
-		subreddits?: string[]
-		keywords?: string[]
-		jobType: 'web_crawl' | 'social_scrape' | 'feed_ingest'
-		maxPages?: number
-	}
+	config: ScrapeJobDispatch
 }) {
 	const config = getConfig()
 	const body = JSON.stringify(job)
@@ -52,8 +53,17 @@ export async function dispatchScrapeJob(job: {
 	})
 
 	if (!response.ok) {
-		throw new Error(`Scraper dispatch failed: ${response.statusText}`)
+		let detail = response.statusText
+		try {
+			const errorBody = await response.text()
+			if (errorBody) detail = `${response.status} ${response.statusText}: ${errorBody.slice(0, 500)}`
+		} catch { /* ignore read failure */ }
+		throw new Error(`Scraper dispatch failed: ${detail}`)
 	}
 
-	return response.json()
+	try {
+		return await response.json()
+	} catch {
+		return { status: 'dispatched' }
+	}
 }

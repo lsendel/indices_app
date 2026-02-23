@@ -1,17 +1,11 @@
-import { eq, and } from 'drizzle-orm'
+import { eq, and, inArray } from 'drizzle-orm'
 import { getDb } from '../../db/client'
 import { scrapeJobs } from '../../db/schema'
+import type { ScrapeJobDispatch } from '../../types/api'
 
-export interface JobConfig {
-	jobType: 'web_crawl' | 'social_scrape' | 'feed_ingest'
-	seedUrls?: string[]
-	subreddits?: string[]
-	keywords?: string[]
-	maxPages?: number
-	feedSubscriptionId?: string
-}
+export type JobConfig = ScrapeJobDispatch
 
-export async function createJob(tenantId: string, config: JobConfig, callbackUrl: string) {
+export async function createJob(tenantId: string, config: ScrapeJobDispatch, callbackUrl: string) {
 	const db = getDb()
 	const [job] = await db.insert(scrapeJobs).values({ tenantId, jobType: config.jobType, config, callbackUrl }).returning()
 	return job
@@ -25,7 +19,14 @@ export async function getJobStatus(jobId: string, tenantId: string) {
 
 export async function cancelJob(jobId: string, tenantId: string) {
 	const db = getDb()
-	const [updated] = await db.update(scrapeJobs).set({ status: 'cancelled' }).where(and(eq(scrapeJobs.id, jobId), eq(scrapeJobs.tenantId, tenantId))).returning()
+	const [updated] = await db.update(scrapeJobs)
+		.set({ status: 'cancelled' })
+		.where(and(
+			eq(scrapeJobs.id, jobId),
+			eq(scrapeJobs.tenantId, tenantId),
+			inArray(scrapeJobs.status, ['pending', 'queued', 'running']),
+		))
+		.returning()
 	return updated ?? null
 }
 

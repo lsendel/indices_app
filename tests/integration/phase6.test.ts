@@ -66,7 +66,7 @@ describe('Phase 6 Integration: MCP + SSE + Pipeline', () => {
 			analyzeSentiment: vi.fn().mockResolvedValue({ score: 0.9, themes: ['growth'] }),
 			generateContent: vi.fn(),
 		}
-		const enriched = await enrichArticles(adapter, [{ id: 'a1', title: 'Growth', content: 'Revenue grew 40%', brand: 'TestCo' }])
+		const { results: enriched } = await enrichArticles(adapter, [{ id: 'a1', title: 'Growth', content: 'Revenue grew 40%', brand: 'TestCo' }])
 		expect(enriched[0].sentiment.score).toBe(0.9)
 	})
 })

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
-import { processBatch, type BatchPayload } from '../../../src/services/scraper/batch-handler'
+import { processBatch } from '../../../src/services/scraper/batch-handler'
+import type { BatchPayload } from '../../../src/types/api'
 
 const mockDb = {
 	select: vi.fn().mockReturnValue({

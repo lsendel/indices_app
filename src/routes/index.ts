@@ -30,6 +30,7 @@ export function registerRoutes(app: Hono<AppEnv>) {
 	// Webhook routes (HMAC-authenticated, no user session)
 	app.route('/webhooks/zeluto', createZelutoWebhookRoutes())
 	app.route('/webhooks/meta', createMetaWebhookRoutes())
+	app.route('/webhooks/ingest', createIngestRoutes())
 
 	// Protected API routes
 	app.use('/api/v1/*', authMiddleware())
@@ -37,7 +38,6 @@ export function registerRoutes(app: Hono<AppEnv>) {
 	app.route('/api/v1/campaigns', createCampaignRoutes())
 	app.route('/api/v1/segments', createSegmentRoutes())
 	app.route('/api/v1/audit', createComplianceRoutes())
-	app.route('/api/v1/ingest', createIngestRoutes())
 	app.route('/api/v1/signals', createSignalRoutes())
 	app.route('/api/v1/accounts', createAbmRoutes())
 	app.route('/api/v1/sentiment', createSentimentRoutes())

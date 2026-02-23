@@ -7,5 +7,6 @@ export default defineConfig({
 			'**/.claude/worktrees/**',
 			'**/.worktrees/**',
 		],
+		setupFiles: ['./tests/setup.ts'],
 	},
 })
