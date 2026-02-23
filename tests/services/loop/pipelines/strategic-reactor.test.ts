@@ -29,6 +29,25 @@ describe('Strategic Reactor Pipeline', () => {
 		)
 	})
 
+	it('should apply configOverrides for tone, channels, and keywords', async () => {
+		const generateContent = vi.fn().mockResolvedValue({})
+
+		const handler = createStrategicReactorHandler({
+			generateContent,
+			resolveChannels: vi.fn().mockReturnValue(['linkedin']),
+		})
+
+		await handler(driftEvent, { tone: 'urgent', channels: ['email', 'sms'], keywords: ['recall'] })
+
+		expect(generateContent).toHaveBeenCalledWith(
+			expect.objectContaining({
+				tone: 'urgent',
+				channels: ['email', 'sms'],
+				keywords: ['product issues', 'recall'],
+			}),
+		)
+	})
+
 	it('should use empathetic tone for negative drift', async () => {
 		const generateContent = vi.fn().mockResolvedValue({})
 

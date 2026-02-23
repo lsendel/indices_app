@@ -108,6 +108,11 @@ export function evaluateRules(
 	}
 
 	for (const rule of sorted) {
+		if (rule.cooldownMinutes > 0 && rule.lastFiredAt) {
+			const cooldownMs = rule.cooldownMinutes * 60_000
+			if (Date.now() - rule.lastFiredAt.getTime() < cooldownMs) continue
+		}
+
 		const allMatch = rule.conditions.every((c) => evaluateCondition(c, payload, context))
 		if (!allMatch) continue
 

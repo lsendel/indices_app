@@ -84,6 +84,30 @@ describe('Rule Engine', () => {
 		expect(result.matched).toHaveLength(1)
 	})
 
+	it('should skip rules still in cooldown', () => {
+		const rule: Rule = {
+			id: 'r1', name: 'throttled', priority: 10, cooldownMinutes: 60,
+			conditions: [{ field: 'channel', op: 'eq', value: 'email' }],
+			actions: [{ type: 'notify', message: 'fired' }],
+			scope: {},
+			lastFiredAt: new Date(Date.now() - 30 * 60_000), // 30 min ago — still in 60-min cooldown
+		}
+		const result = evaluateRules([rule], baseEvent.payload, {})
+		expect(result.matched).toHaveLength(0)
+	})
+
+	it('should fire rules whose cooldown has expired', () => {
+		const rule: Rule = {
+			id: 'r1', name: 'expired-cooldown', priority: 10, cooldownMinutes: 60,
+			conditions: [{ field: 'channel', op: 'eq', value: 'email' }],
+			actions: [{ type: 'notify', message: 'fired' }],
+			scope: {},
+			lastFiredAt: new Date(Date.now() - 90 * 60_000), // 90 min ago — past 60-min cooldown
+		}
+		const result = evaluateRules([rule], baseEvent.payload, {})
+		expect(result.matched).toHaveLength(1)
+	})
+
 	it('should evaluate rules in priority order', () => {
 		const rules: Rule[] = [
 			{

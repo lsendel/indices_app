@@ -1,4 +1,5 @@
 import { pgTable, uuid, text, timestamp, jsonb, integer, boolean, index } from 'drizzle-orm/pg-core'
+import { sql } from 'drizzle-orm'
 import { tenants } from './tenants'
 
 export const loopRules = pgTable('loop_rules', {
@@ -16,5 +17,5 @@ export const loopRules = pgTable('loop_rules', {
 	active: boolean('active').default(true).notNull(),
 	createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 }, (table) => [
-	index('idx_loop_rules_tenant_active').on(table.tenantId, table.active),
+	index('idx_loop_rules_tenant_active').on(table.tenantId, table.active).where(sql`${table.active} = true`),
 ])

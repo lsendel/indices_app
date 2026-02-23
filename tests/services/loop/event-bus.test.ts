@@ -65,4 +65,41 @@ describe('EventBus', () => {
 		expect(history).toHaveLength(2)
 		expect(history[0].payload.score).toBe(1)
 	})
+
+	it('should bound event log to maxLogSize', async () => {
+		const bus = createEventBus({ maxLogSize: 5 })
+		for (let i = 0; i < 10; i++) {
+			await bus.emit('tenant-1', 'engagement.collected', { i })
+		}
+
+		const history = bus.history('tenant-1', 'engagement.collected')
+		expect(history).toHaveLength(5)
+		expect(history[0].payload.i).toBe(5)
+	})
+
+	it('should allow unsubscribing typed handlers via off()', async () => {
+		const bus = createEventBus()
+		const handler = vi.fn()
+		const off = bus.on('engagement.collected', handler)
+
+		await bus.emit('tenant-1', 'engagement.collected', {})
+		expect(handler).toHaveBeenCalledTimes(1)
+
+		off()
+		await bus.emit('tenant-1', 'engagement.collected', {})
+		expect(handler).toHaveBeenCalledTimes(1)
+	})
+
+	it('should allow unsubscribing wildcard handlers via off()', async () => {
+		const bus = createEventBus()
+		const handler = vi.fn()
+		const off = bus.onAny(handler)
+
+		await bus.emit('tenant-1', 'engagement.collected', {})
+		expect(handler).toHaveBeenCalledTimes(1)
+
+		off()
+		await bus.emit('tenant-1', 'engagement.collected', {})
+		expect(handler).toHaveBeenCalledTimes(1)
+	})
 })

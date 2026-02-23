@@ -1,4 +1,5 @@
 import { pgTable, uuid, text, timestamp, jsonb, boolean, index } from 'drizzle-orm/pg-core'
+import { sql } from 'drizzle-orm'
 import { tenants } from './tenants'
 
 export const loopChannelGroups = pgTable('loop_channel_groups', {
@@ -13,5 +14,5 @@ export const loopChannelGroups = pgTable('loop_channel_groups', {
 	createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 }, (table) => [
 	index('idx_channel_groups_tenant').on(table.tenantId),
-	index('idx_channel_groups_refresh').on(table.tenantId, table.autoRefresh),
+	index('idx_channel_groups_refresh').on(table.tenantId, table.autoRefresh).where(sql`${table.autoRefresh} = true`),
 ])

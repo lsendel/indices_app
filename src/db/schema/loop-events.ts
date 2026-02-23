@@ -1,12 +1,13 @@
 import { pgTable, uuid, text, timestamp, jsonb, integer, index } from 'drizzle-orm/pg-core'
 import { tenants } from './tenants'
+import { loopPipelines } from './loop-pipelines'
 
 export const loopEvents = pgTable('loop_events', {
 	id: uuid('id').defaultRandom().primaryKey(),
 	tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
 	eventType: text('event_type').notNull(),
 	payload: jsonb('payload').notNull(),
-	pipelineId: uuid('pipeline_id'),
+	pipelineId: uuid('pipeline_id').references(() => loopPipelines.id),
 	ruleIds: uuid('rule_ids').array(),
 	outcome: text('outcome', { enum: ['processed', 'gated', 'error', 'skipped'] }).notNull(),
 	outcomeData: jsonb('outcome_data'),

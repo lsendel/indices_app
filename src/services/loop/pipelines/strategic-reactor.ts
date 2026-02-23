@@ -6,18 +6,20 @@ export interface ReactorDeps {
 }
 
 export function createStrategicReactorHandler(deps: ReactorDeps) {
-	return async (event: LoopEvent, _configOverrides: Record<string, unknown>) => {
+	return async (event: LoopEvent, configOverrides: Record<string, unknown>) => {
 		const { brand, direction, themes } = event.payload as {
 			brand: string; direction: string; themes: string[]
 		}
 
-		const tone = direction === 'negative' ? 'empathetic' : 'celebratory'
-		const channels = deps.resolveChannels(direction)
+		const defaultTone = direction === 'negative' ? 'empathetic' : 'celebratory'
+		const tone = (configOverrides.tone as string) ?? defaultTone
+		const channels = (configOverrides.channels as string[]) ?? deps.resolveChannels(direction)
+		const extraKeywords = (configOverrides.keywords as string[]) ?? []
 
 		await deps.generateContent({
 			goal: `Address ${direction} sentiment about ${brand}: ${(themes ?? []).join(', ')}`,
 			tone,
-			keywords: themes ?? [],
+			keywords: [...(themes ?? []), ...extraKeywords],
 			channels,
 		})
 	}
