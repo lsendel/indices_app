@@ -1,4 +1,4 @@
-import type { OpenAIAdapter } from '../../adapters/openai'
+import type { LLMProvider } from '../../adapters/llm/types'
 
 export interface CampaignStats {
 	sent: number
@@ -47,7 +47,7 @@ export function computeMetricScore(stats: CampaignStats): number {
  * @returns Combined evaluation with metric score, quality score, and feedback
  */
 export async function evaluateCampaign(
-	adapter: OpenAIAdapter,
+	provider: LLMProvider,
 	stats: CampaignStats,
 	goal: string,
 ): Promise<EvaluationResult> {
@@ -63,7 +63,7 @@ Metric score: ${metricScore.toFixed(3)}`
 	let feedback = ''
 
 	try {
-		const response = await adapter.generateContent(prompt, systemPrompt)
+		const response = await provider.generateText(prompt, { systemPrompt })
 		const parsed = JSON.parse(response) as { qualityScore: number; feedback: string }
 		qualityScore = Math.max(0, Math.min(1, parsed.qualityScore))
 		feedback = parsed.feedback

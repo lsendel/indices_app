@@ -1,12 +1,13 @@
 import { describe, it, expect, vi } from 'vitest'
 import { runOptimizationCycle } from '../../../src/services/evo/optimizer'
 import { GRADIENT_FAILURE } from '../../../src/services/evo/textgrad'
-import type { OpenAIAdapter } from '../../../src/adapters/openai'
+import type { LLMProvider } from '../../../src/adapters/llm/types'
 
-function mockAdapter(): OpenAIAdapter {
+function mockProvider(): LLMProvider {
 	return {
-		analyzeSentiment: vi.fn(),
-		generateContent: vi.fn()
+		name: 'mock',
+		capabilities: new Set(['text', 'json']),
+		generateText: vi.fn()
 			// computeLoss responses
 			.mockResolvedValueOnce(JSON.stringify({ loss: 0.6, analysis: 'Needs more personalization' }))
 			// computeGradient response
@@ -17,13 +18,14 @@ function mockAdapter(): OpenAIAdapter {
 			.mockResolvedValueOnce('Crossover child prompt.')
 			// mutate response
 			.mockResolvedValueOnce('Mutated child prompt.'),
+		generateJSON: vi.fn(),
 	}
 }
 
 describe('runOptimizationCycle', () => {
 	it('runs a single optimization cycle with TextGrad + GA', async () => {
-		const adapter = mockAdapter()
-		const result = await runOptimizationCycle(adapter, {
+		const provider = mockProvider()
+		const result = await runOptimizationCycle(provider, {
 			currentPrompt: 'Write a marketing email.',
 			output: 'Dear customer, buy stuff.',
 			goal: 'Personalized product launch email',
@@ -41,8 +43,8 @@ describe('runOptimizationCycle', () => {
 	})
 
 	it('runs TextGrad only when strategy is textgrad', async () => {
-		const adapter = mockAdapter()
-		const result = await runOptimizationCycle(adapter, {
+		const provider = mockProvider()
+		const result = await runOptimizationCycle(provider, {
 			currentPrompt: 'Write email.',
 			output: 'Output.',
 			goal: 'Goal.',
@@ -55,14 +57,16 @@ describe('runOptimizationCycle', () => {
 	})
 
 	it('runs DE mutation when strategy is de and population >= 3', async () => {
-		const adapter: OpenAIAdapter = {
-			analyzeSentiment: vi.fn(),
-			generateContent: vi.fn()
+		const provider: LLMProvider = {
+			name: 'mock',
+			capabilities: new Set(['text', 'json']),
+			generateText: vi.fn()
 				// deMutatePrompt response
 				.mockResolvedValueOnce('DE-evolved prompt.'),
+			generateJSON: vi.fn(),
 		}
 
-		const result = await runOptimizationCycle(adapter, {
+		const result = await runOptimizationCycle(provider, {
 			currentPrompt: 'Write email.',
 			output: 'Output.',
 			goal: 'Goal.',
@@ -79,16 +83,18 @@ describe('runOptimizationCycle', () => {
 	})
 
 	it('skips applyGradient when computeGradient fails', async () => {
-		const adapter: OpenAIAdapter = {
-			analyzeSentiment: vi.fn(),
-			generateContent: vi.fn()
+		const provider: LLMProvider = {
+			name: 'mock',
+			capabilities: new Set(['text', 'json']),
+			generateText: vi.fn()
 				// computeLoss response
 				.mockResolvedValueOnce(JSON.stringify({ loss: 0.8, analysis: 'Poor quality' }))
-				// computeGradient returns wrong shape → fallback
+				// computeGradient returns wrong shape -> fallback
 				.mockResolvedValueOnce(JSON.stringify({ wrong: 'shape' })),
+			generateJSON: vi.fn(),
 		}
 
-		const result = await runOptimizationCycle(adapter, {
+		const result = await runOptimizationCycle(provider, {
 			currentPrompt: 'Original prompt.',
 			output: 'Bad output.',
 			goal: 'Good output.',
@@ -98,16 +104,18 @@ describe('runOptimizationCycle', () => {
 
 		expect(result.textgradPrompt).toBe('Original prompt.')
 		expect(result.gradient).toBe(GRADIENT_FAILURE)
-		expect(adapter.generateContent).toHaveBeenCalledTimes(2)
+		expect(provider.generateText).toHaveBeenCalledTimes(2)
 	})
 
 	it('skips DE when population < 3', async () => {
-		const adapter: OpenAIAdapter = {
-			analyzeSentiment: vi.fn(),
-			generateContent: vi.fn(),
+		const provider: LLMProvider = {
+			name: 'mock',
+			capabilities: new Set(['text', 'json']),
+			generateText: vi.fn(),
+			generateJSON: vi.fn(),
 		}
 
-		const result = await runOptimizationCycle(adapter, {
+		const result = await runOptimizationCycle(provider, {
 			currentPrompt: 'Write email.',
 			output: 'Output.',
 			goal: 'Goal.',
@@ -120,6 +128,6 @@ describe('runOptimizationCycle', () => {
 
 		expect(result.textgradPrompt).toBeNull()
 		expect(result.gaChildren).toHaveLength(0)
-		expect(adapter.generateContent).not.toHaveBeenCalled()
+		expect(provider.generateText).not.toHaveBeenCalled()
 	})
 })

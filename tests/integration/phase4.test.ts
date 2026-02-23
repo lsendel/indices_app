@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import type { OpenAIAdapter } from '../../src/adapters/openai'
+import type { LLMProvider } from '../../src/adapters/llm/types'
 import type { WorkFlowNode, WorkFlowEdge } from '../../src/types/workflow'
 import { inferEdges, getNextNodes, validateGraph, topologicalSort } from '../../src/services/evo/workflow-graph'
 import { decomposeGoal } from '../../src/services/evo/task-planner'
@@ -12,22 +12,24 @@ import { runOptimizationCycle } from '../../src/services/evo/optimizer'
 import { runLearningIteration } from '../../src/services/evo/learning-loop'
 import { createHitlRequest, resolveHitlRequest, isExpired } from '../../src/services/evo/hitl'
 
-function createMockAdapter(responses: string[]): OpenAIAdapter {
+function createMockProvider(responses: string[]): LLMProvider {
 	let callIdx = 0
 	return {
-		analyzeSentiment: vi.fn(),
-		generateContent: vi.fn().mockImplementation(() => {
+		name: 'mock',
+		capabilities: new Set(['text', 'json']),
+		generateText: vi.fn().mockImplementation(() => {
 			const response = responses[callIdx] ?? '{}'
 			callIdx++
 			return Promise.resolve(response)
 		}),
+		generateJSON: vi.fn(),
 	}
 }
 
 describe('Phase 4 Integration: EvoAgentX pipeline', () => {
 	it('end-to-end: goal -> workflow -> evaluate -> optimize -> HITL', async () => {
 		// 1. Generate workflow from a goal
-		const adapter = createMockAdapter([
+		const provider = createMockProvider([
 			// decomposeGoal response
 			JSON.stringify([
 				{
@@ -68,7 +70,7 @@ describe('Phase 4 Integration: EvoAgentX pipeline', () => {
 		])
 
 		// Step 1: Generate workflow
-		const workflow = await generateWorkflow(adapter, 'Launch Q1 product email campaign')
+		const workflow = await generateWorkflow(provider, 'Launch Q1 product email campaign')
 		expect(workflow.graph.nodes).toHaveLength(3)
 		expect(workflow.graph.edges).toHaveLength(2) // research->draft, draft->review
 		expect(workflow.agents).toHaveLength(3)
@@ -92,7 +94,7 @@ describe('Phase 4 Integration: EvoAgentX pipeline', () => {
 		expect(next2.map(n => n.name)).toEqual(['draft_content'])
 
 		// Step 6: Run learning iteration (evaluate + optimize)
-		const learningResult = await runLearningIteration(adapter, {
+		const learningResult = await runLearningIteration(provider, {
 			currentPrompt: 'Write email for product launch.',
 			campaignOutput: 'Dear customer, check out our product!',
 			goal: 'Drive awareness for Q1 launch',

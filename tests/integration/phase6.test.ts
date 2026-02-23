@@ -6,7 +6,7 @@ import { emitEvent } from '../../src/routes/sse'
 import { deduplicateArticles } from '../../src/services/scraper/dedup'
 import { parseCronSchedule, isDue } from '../../src/services/scraper/feed-manager'
 import { enrichArticles } from '../../src/services/scraper/enrichment'
-import type { OpenAIAdapter } from '../../src/adapters/openai'
+import type { LLMProvider } from '../../src/adapters/llm/types'
 
 describe('Phase 6 Integration: MCP + SSE + Pipeline', () => {
 	it('MCP server exposes all 11 intelligence tools', () => {
@@ -28,16 +28,18 @@ describe('Phase 6 Integration: MCP + SSE + Pipeline', () => {
 	})
 
 	it('workflow generation via MCP produces valid DAG', async () => {
-		const adapter: OpenAIAdapter = {
-			analyzeSentiment: vi.fn(),
-			generateContent: vi.fn()
+		const provider: LLMProvider = {
+			name: 'mock',
+			capabilities: new Set(['text', 'json']),
+			generateText: vi.fn()
 				.mockResolvedValueOnce(JSON.stringify([
 					{ name: 'research', description: 'Research', inputs: [], outputs: [{ name: 'data', description: 'd', required: true }] },
 					{ name: 'execute', description: 'Execute', inputs: [{ name: 'data', description: 'd', required: true }], outputs: [] },
 				]))
 				.mockResolvedValue(JSON.stringify({ name: 'agent', description: 'desc', systemPrompt: 'sp', instructionPrompt: 'ip' })),
+			generateJSON: vi.fn(),
 		}
-		const result = await handleGenerateWorkflow('Launch Q2 campaign', adapter)
+		const result = await handleGenerateWorkflow('Launch Q2 campaign', provider)
 		expect(result.graph.nodes).toHaveLength(2)
 		expect(result.graph.edges).toHaveLength(1)
 	})
@@ -63,11 +65,13 @@ describe('Phase 6 Integration: MCP + SSE + Pipeline', () => {
 		expect(isDue({ id: 'f1', schedule: '0 */6 * * *', active: true, lastFetchedAt: null })).toBe(true)
 
 		// Enrichment
-		const adapter: OpenAIAdapter = {
-			analyzeSentiment: vi.fn().mockResolvedValue({ score: 0.9, themes: ['growth'] }),
-			generateContent: vi.fn(),
+		const provider: LLMProvider = {
+			name: 'mock',
+			capabilities: new Set(['text', 'json']),
+			generateText: vi.fn(),
+			generateJSON: vi.fn().mockResolvedValue({ score: 0.9, themes: ['growth'] }),
 		}
-		const { results: enriched } = await enrichArticles(adapter, [{ id: 'a1', title: 'Growth', content: 'Revenue grew 40%', brand: 'TestCo' }])
+		const { results: enriched } = await enrichArticles(provider, [{ id: 'a1', title: 'Growth', content: 'Revenue grew 40%', brand: 'TestCo' }])
 		expect(enriched[0].sentiment.score).toBe(0.9)
 	})
 })

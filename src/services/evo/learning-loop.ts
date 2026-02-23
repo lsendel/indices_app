@@ -1,4 +1,4 @@
-import type { OpenAIAdapter } from '../../adapters/openai'
+import type { LLMProvider } from '../../adapters/llm/types'
 import { evaluateCampaign, type CampaignStats, type EvaluationResult } from './evaluator'
 import { runOptimizationCycle, type OptimizationResult } from './optimizer'
 import type { ScoredPrompt } from './prompt-population'
@@ -25,16 +25,16 @@ export interface LearningResult {
  * @returns Evaluation results, optimization results, and candidate prompts for scoring
  */
 export async function runLearningIteration(
-	adapter: OpenAIAdapter,
+	provider: LLMProvider,
 	context: LearningContext,
 ): Promise<LearningResult> {
 	const evaluation = await evaluateCampaign(
-		adapter,
+		provider,
 		context.campaignStats,
 		context.goal,
 	)
 
-	const optimization = await runOptimizationCycle(adapter, {
+	const optimization = await runOptimizationCycle(provider, {
 		currentPrompt: context.currentPrompt,
 		output: context.campaignOutput,
 		goal: context.goal,

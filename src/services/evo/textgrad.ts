@@ -1,4 +1,4 @@
-import type { OpenAIAdapter } from '../../adapters/openai'
+import type { LLMProvider } from '../../adapters/llm/types'
 
 export interface LossInput {
 	prompt: string
@@ -35,7 +35,7 @@ export interface ApplyGradientInput {
  * @param input - Prompt, output, and goal to evaluate
  * @returns Loss score in [0, 1] (0=perfect, 1=terrible) and analysis text
  */
-export async function computeLoss(adapter: OpenAIAdapter, input: LossInput): Promise<LossResult> {
+export async function computeLoss(provider: LLMProvider, input: LossInput): Promise<LossResult> {
 	const systemPrompt = `You evaluate the quality of AI-generated marketing content. Return JSON: { "loss": number (0=perfect, 1=terrible), "analysis": "what went wrong" }`
 	const prompt = `Goal: ${input.goal}
 Prompt used: ${input.prompt}
@@ -44,7 +44,7 @@ Output produced: ${input.output.slice(0, 2000)}
 Rate the quality (0=perfect match to goal, 1=completely wrong).`
 
 	try {
-		const response = await adapter.generateContent(prompt, systemPrompt)
+		const response = await provider.generateText(prompt, { systemPrompt })
 		const parsed = JSON.parse(response) as Record<string, unknown>
 		if (typeof parsed.loss !== 'number' || typeof parsed.analysis !== 'string') {
 			console.warn('computeLoss: LLM response has unexpected shape', { goal: input.goal, receivedKeys: Object.keys(parsed) })
@@ -68,7 +68,7 @@ Rate the quality (0=perfect match to goal, 1=completely wrong).`
  * @returns Gradient description and suggested improved prompt
  */
 export async function computeGradient(
-	adapter: OpenAIAdapter,
+	provider: LLMProvider,
 	input: GradientInput,
 ): Promise<GradientResult> {
 	const systemPrompt = `You improve AI prompts based on quality feedback. Return JSON: { "gradient": "description of what to change", "suggestedPrompt": "improved prompt" }`
@@ -78,7 +78,7 @@ Quality issues: ${input.lossAnalysis}
 Suggest specific improvements.`
 
 	try {
-		const response = await adapter.generateContent(prompt, systemPrompt)
+		const response = await provider.generateText(prompt, { systemPrompt })
 		const parsed = JSON.parse(response) as Record<string, unknown>
 		if (typeof parsed.gradient !== 'string' || typeof parsed.suggestedPrompt !== 'string') {
 			console.warn('computeGradient: LLM response has unexpected shape', { prompt: input.prompt.slice(0, 200), receivedKeys: Object.keys(parsed) })
@@ -99,7 +99,7 @@ Suggest specific improvements.`
  * @returns Improved prompt text
  */
 export async function applyGradient(
-	adapter: OpenAIAdapter,
+	provider: LLMProvider,
 	input: ApplyGradientInput,
 ): Promise<string> {
 	const systemPrompt = 'You rewrite prompts to incorporate improvements. Return ONLY the improved prompt text, nothing else.'
@@ -108,5 +108,5 @@ Improvements to apply: ${input.gradient}
 
 Rewrite the prompt incorporating these improvements.`
 
-	return adapter.generateContent(prompt, systemPrompt)
+	return provider.generateText(prompt, { systemPrompt })
 }

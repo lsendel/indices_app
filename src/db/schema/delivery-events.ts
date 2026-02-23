@@ -12,7 +12,7 @@ export const deliveryEvents = pgTable(
 		campaignId: uuid('campaign_id'),
 		experimentId: uuid('experiment_id'),
 		contactEmail: text('contact_email'),
-		channel: text('channel', { enum: ['email', 'sms', 'push', 'webhook'] }).notNull(),
+		channel: text('channel', { enum: ['email', 'sms', 'voice', 'whatsapp', 'linkedin', 'facebook', 'instagram', 'tiktok', 'youtube', 'vimeo', 'video', 'push', 'webhook'] }).notNull(),
 		eventType: text('event_type', {
 			enum: [
 				'queued',

@@ -1,12 +1,14 @@
 import { describe, it, expect, vi } from 'vitest'
 import { generateAgentConfig } from '../../../src/services/evo/agent-generator'
-import type { OpenAIAdapter } from '../../../src/adapters/openai'
+import type { LLMProvider } from '../../../src/adapters/llm/types'
 import type { WorkFlowNode } from '../../../src/types/workflow'
 
-function mockAdapter(response: string): OpenAIAdapter {
+function mockProvider(response: string): LLMProvider {
 	return {
-		analyzeSentiment: vi.fn(),
-		generateContent: vi.fn().mockResolvedValue(response),
+		name: 'mock',
+		capabilities: new Set(['text', 'json']),
+		generateText: vi.fn().mockResolvedValue(response),
+		generateJSON: vi.fn(),
 	}
 }
 
@@ -27,9 +29,9 @@ describe('generateAgentConfig', () => {
 			systemPrompt: 'You are an expert email copywriter.',
 			instructionPrompt: 'Write a compelling marketing email based on the audience profile.',
 		})
-		const adapter = mockAdapter(llmResponse)
+		const provider = mockProvider(llmResponse)
 
-		const config = await generateAgentConfig(adapter, testNode)
+		const config = await generateAgentConfig(provider, testNode)
 		expect(config.name).toBe('email_drafter')
 		expect(config.systemPrompt).toContain('copywriter')
 		expect(config.inputs).toEqual(testNode.inputs)
@@ -37,8 +39,8 @@ describe('generateAgentConfig', () => {
 	})
 
 	it('falls back to node-derived config on invalid LLM response', async () => {
-		const adapter = mockAdapter('garbage')
-		const config = await generateAgentConfig(adapter, testNode)
+		const provider = mockProvider('garbage')
+		const config = await generateAgentConfig(provider, testNode)
 		expect(config.name).toBe('draft_email')
 		expect(config.systemPrompt).toContain('draft_email')
 	})

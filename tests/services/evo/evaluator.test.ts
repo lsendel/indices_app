@@ -1,11 +1,13 @@
 import { describe, it, expect, vi } from 'vitest'
 import { evaluateCampaign, computeMetricScore } from '../../../src/services/evo/evaluator'
-import type { OpenAIAdapter } from '../../../src/adapters/openai'
+import type { LLMProvider } from '../../../src/adapters/llm/types'
 
-function mockAdapter(response: string): OpenAIAdapter {
+function mockProvider(response: string): LLMProvider {
 	return {
-		analyzeSentiment: vi.fn(),
-		generateContent: vi.fn().mockResolvedValue(response),
+		name: 'mock',
+		capabilities: new Set(['text', 'json']),
+		generateText: vi.fn().mockResolvedValue(response),
+		generateJSON: vi.fn(),
 	}
 }
 
@@ -42,12 +44,12 @@ describe('computeMetricScore', () => {
 
 describe('evaluateCampaign', () => {
 	it('combines metric score with LLM quality assessment', async () => {
-		const adapter = mockAdapter(JSON.stringify({ qualityScore: 0.8, feedback: 'Good targeting' }))
+		const provider = mockProvider(JSON.stringify({ qualityScore: 0.8, feedback: 'Good targeting' }))
 		const stats = {
 			sent: 1000, delivered: 950, opened: 400, clicked: 80, bounced: 50, complained: 5,
 		}
 
-		const result = await evaluateCampaign(adapter, stats, 'Launch product email')
+		const result = await evaluateCampaign(provider, stats, 'Launch product email')
 		expect(result.metricScore).toBeGreaterThan(0)
 		expect(result.qualityScore).toBe(0.8)
 		expect(result.combinedScore).toBeGreaterThan(0)
@@ -55,12 +57,12 @@ describe('evaluateCampaign', () => {
 	})
 
 	it('uses metric score alone when LLM fails', async () => {
-		const adapter = mockAdapter('invalid json')
+		const provider = mockProvider('invalid json')
 		const stats = {
 			sent: 1000, delivered: 950, opened: 400, clicked: 80, bounced: 50, complained: 5,
 		}
 
-		const result = await evaluateCampaign(adapter, stats, 'Some goal')
+		const result = await evaluateCampaign(provider, stats, 'Some goal')
 		expect(result.metricScore).toBeGreaterThan(0)
 		expect(result.qualityScore).toBe(0)
 		expect(result.combinedScore).toBe(result.metricScore)

@@ -1,4 +1,4 @@
-import type { OpenAIAdapter } from '../../adapters/openai'
+import type { LLMProvider } from '../../adapters/llm/types'
 import { computeLoss, computeGradient, applyGradient, GRADIENT_FAILURE } from './textgrad'
 import { selectParents, crossoverPrompts, mutatePrompt, deMutatePrompt } from './prompt-population'
 import type { ScoredPrompt } from './prompt-population'
@@ -25,7 +25,7 @@ export interface OptimizationResult {
  * @returns TextGrad-improved prompt, GA/DE children, loss value, and gradient text
  */
 export async function runOptimizationCycle(
-	adapter: OpenAIAdapter,
+	provider: LLMProvider,
 	input: OptimizationInput,
 ): Promise<OptimizationResult> {
 	let textgradPrompt: string | null = null
@@ -39,14 +39,14 @@ export async function runOptimizationCycle(
 
 	// TextGrad phase
 	if (useTextGrad) {
-		const lossResult = await computeLoss(adapter, {
+		const lossResult = await computeLoss(provider, {
 			prompt: input.currentPrompt,
 			output: input.output,
 			goal: input.goal,
 		})
 		loss = lossResult.loss
 
-		const gradientResult = await computeGradient(adapter, {
+		const gradientResult = await computeGradient(provider, {
 			prompt: input.currentPrompt,
 			lossAnalysis: lossResult.analysis,
 		})
@@ -55,7 +55,7 @@ export async function runOptimizationCycle(
 		if (gradient === GRADIENT_FAILURE) {
 			textgradPrompt = input.currentPrompt
 		} else {
-			textgradPrompt = await applyGradient(adapter, {
+			textgradPrompt = await applyGradient(provider, {
 				currentPrompt: input.currentPrompt,
 				gradient: gradientResult.gradient,
 			})
@@ -65,17 +65,17 @@ export async function runOptimizationCycle(
 	// GA phase
 	if (useGA) {
 		const parents = selectParents(input.population, 2)
-		const child = await crossoverPrompts(adapter, parents[0].prompt, parents[1].prompt)
+		const child = await crossoverPrompts(provider, parents[0].prompt, parents[1].prompt)
 		gaChildren.push(child)
 
-		const mutated = await mutatePrompt(adapter, child)
+		const mutated = await mutatePrompt(provider, child)
 		gaChildren.push(mutated)
 	}
 
 	// DE phase
 	if (useDE) {
 		const sorted = [...input.population].sort((a, b) => b.score - a.score)
-		const deChild = await deMutatePrompt(adapter, {
+		const deChild = await deMutatePrompt(provider, {
 			target: sorted[0].prompt,
 			donor1: sorted[1].prompt,
 			donor2: sorted[2].prompt,

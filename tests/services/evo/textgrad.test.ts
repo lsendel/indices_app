@@ -1,21 +1,23 @@
 import { describe, it, expect, vi } from 'vitest'
 import { computeLoss, computeGradient, applyGradient, GRADIENT_FAILURE, LOSS_FAILURE } from '../../../src/services/evo/textgrad'
-import type { OpenAIAdapter } from '../../../src/adapters/openai'
+import type { LLMProvider } from '../../../src/adapters/llm/types'
 
-function mockAdapter(response: string): OpenAIAdapter {
+function mockProvider(response: string): LLMProvider {
 	return {
-		analyzeSentiment: vi.fn(),
-		generateContent: vi.fn().mockResolvedValue(response),
+		name: 'mock',
+		capabilities: new Set(['text', 'json']),
+		generateText: vi.fn().mockResolvedValue(response),
+		generateJSON: vi.fn(),
 	}
 }
 
 describe('computeLoss', () => {
 	it('asks LLM to evaluate prompt output quality and returns a loss string', async () => {
-		const adapter = mockAdapter(JSON.stringify({
+		const provider = mockProvider(JSON.stringify({
 			loss: 0.4,
 			analysis: 'The email is too generic and lacks personalization.',
 		}))
-		const result = await computeLoss(adapter, {
+		const result = await computeLoss(provider, {
 			prompt: 'Write a marketing email.',
 			output: 'Dear customer, buy our product.',
 			goal: 'Personalized product email',
@@ -25,8 +27,8 @@ describe('computeLoss', () => {
 	})
 
 	it('returns high loss when LLM response has wrong shape', async () => {
-		const adapter = mockAdapter(JSON.stringify({ foo: 'bar' }))
-		const result = await computeLoss(adapter, {
+		const provider = mockProvider(JSON.stringify({ foo: 'bar' }))
+		const result = await computeLoss(provider, {
 			prompt: 'test',
 			output: 'test',
 			goal: 'test',
@@ -36,8 +38,8 @@ describe('computeLoss', () => {
 	})
 
 	it('returns high loss on LLM failure', async () => {
-		const adapter = mockAdapter('bad json')
-		const result = await computeLoss(adapter, {
+		const provider = mockProvider('bad json')
+		const result = await computeLoss(provider, {
 			prompt: 'test',
 			output: 'test',
 			goal: 'test',
@@ -48,8 +50,8 @@ describe('computeLoss', () => {
 
 describe('computeGradient', () => {
 	it('returns fallback when LLM response has wrong shape', async () => {
-		const adapter = mockAdapter(JSON.stringify({ foo: 'bar' }))
-		const result = await computeGradient(adapter, {
+		const provider = mockProvider(JSON.stringify({ foo: 'bar' }))
+		const result = await computeGradient(provider, {
 			prompt: 'Write a marketing email.',
 			lossAnalysis: 'Too generic.',
 		})
@@ -58,12 +60,12 @@ describe('computeGradient', () => {
 	})
 
 	it('asks LLM for prompt improvement suggestions', async () => {
-		const adapter = mockAdapter(JSON.stringify({
+		const provider = mockProvider(JSON.stringify({
 			gradient: 'Add personalization tokens and urgency language.',
 			suggestedPrompt: 'Write a personalized marketing email with urgency.',
 		}))
 
-		const result = await computeGradient(adapter, {
+		const result = await computeGradient(provider, {
 			prompt: 'Write a marketing email.',
 			lossAnalysis: 'Too generic, lacks personalization.',
 		})
@@ -75,9 +77,9 @@ describe('computeGradient', () => {
 describe('applyGradient', () => {
 	it('asks LLM to apply gradient to produce improved prompt', async () => {
 		const improved = 'Write a personalized, urgency-driven marketing email for {audience}.'
-		const adapter = mockAdapter(improved)
+		const provider = mockProvider(improved)
 
-		const result = await applyGradient(adapter, {
+		const result = await applyGradient(provider, {
 			currentPrompt: 'Write a marketing email.',
 			gradient: 'Add personalization and urgency.',
 		})

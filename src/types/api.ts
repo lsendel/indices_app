@@ -45,7 +45,7 @@ export const campaignCreate = z.object({
 	name: z.string().min(1).max(200),
 	goal: z.string().min(1).max(200),
 	productDescription: z.string().max(500).optional(),
-	channels: z.array(z.enum(['email', 'sms', 'voice', 'linkedin'])).min(1),
+	channels: z.array(z.enum(['email', 'sms', 'voice', 'whatsapp', 'linkedin', 'facebook', 'instagram', 'tiktok', 'youtube', 'vimeo', 'video'])).min(1),
 	prospectId: z.string().uuid().optional(),
 	metadata: z.record(z.string(), z.any()).optional(),
 })
@@ -170,7 +170,7 @@ export const zelutoConfigCreate = z.object({
 
 export const contentSyncRequest = z.object({
 	name: z.string().min(1),
-	channel: z.enum(['email', 'sms', 'voice', 'linkedin']),
+	channel: z.enum(['email', 'sms', 'voice', 'whatsapp', 'linkedin', 'facebook', 'instagram', 'tiktok', 'youtube', 'vimeo', 'video']),
 	subject: z.string().optional(),
 	bodyHtml: z.string().optional(),
 	bodyText: z.string().optional(),
@@ -343,3 +343,33 @@ export type WordpressConnect = z.infer<typeof wordpressConnect>
 export type BlogConnect = z.infer<typeof blogConnect>
 export type PublishRequest = z.infer<typeof publishRequest>
 export type PublishBatchRequest = z.infer<typeof publishBatchRequest>
+
+// Content generation (Phase 7)
+const channelEnum = z.enum(['email', 'sms', 'voice', 'whatsapp', 'linkedin', 'facebook', 'instagram', 'tiktok', 'youtube', 'vimeo', 'video'])
+
+export const contentBrief = z.object({
+	goal: z.string().min(1).max(500),
+	product: z.string().min(1).max(500),
+	audience: z.string().min(1).max(500),
+	tone: z.string().min(1).max(100),
+	keywords: z.array(z.string()).optional(),
+	campaignId: z.string().uuid().optional(),
+	brandKitId: z.string().uuid().optional(),
+})
+
+export type ContentBriefInput = z.infer<typeof contentBrief>
+
+export const contentGenerate = z.object({
+	channel: channelEnum,
+	brief: contentBrief,
+	provider: z.string().optional(),
+})
+
+export type ContentGenerate = z.infer<typeof contentGenerate>
+
+export const contentGenerateBatch = z.object({
+	channels: z.array(channelEnum).min(1),
+	brief: contentBrief,
+})
+
+export type ContentGenerateBatch = z.infer<typeof contentGenerateBatch>

@@ -3,11 +3,19 @@ import { Hono } from 'hono'
 import type { AppEnv } from '../../src/app'
 import { createMcpRoutes } from '../../src/routes/mcp'
 
-vi.mock('../../src/adapters/openai', () => ({
-	createOpenAIAdapter: vi.fn().mockReturnValue({
-		analyzeSentiment: vi.fn(),
-		generateContent: vi.fn(),
+vi.mock('../../src/adapters/llm/factory', () => ({
+	createLLMRouterFromConfig: vi.fn().mockReturnValue({
+		resolve: vi.fn().mockReturnValue({
+			name: 'mock',
+			capabilities: new Set(['text', 'json']),
+			generateText: vi.fn(),
+			generateJSON: vi.fn(),
+		}),
 	}),
+}))
+
+vi.mock('../../src/config', () => ({
+	getConfig: vi.fn().mockReturnValue({}),
 }))
 
 vi.mock('../../src/db/client', () => ({
