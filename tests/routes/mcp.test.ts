@@ -37,7 +37,7 @@ describe('MCP routes', () => {
 		const res = await app.request('/mcp/tools')
 		expect(res.status).toBe(200)
 		const body = await res.json()
-		expect(body.tools).toHaveLength(8)
+		expect(body.tools).toHaveLength(11)
 		expect(body.tools.map((t: { name: string }) => t.name)).toContain('get_sentiment_analysis')
 	})
 

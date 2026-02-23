@@ -10,6 +10,9 @@ const TOOL_DEFINITIONS = [
 	'get_competitive_intel',
 	'audit_brand_content',
 	'generate_workflow',
+	'get_loop_status',
+	'get_prompt_lineage',
+	'get_loop_insights',
 ] as const
 
 export function getMcpToolNames(): string[] {
@@ -91,6 +94,33 @@ export function createMcpServer(): McpServer {
 		{ goal: z.string(), context: z.string().optional() },
 		async (input) => {
 			return { content: [{ type: 'text' as const, text: JSON.stringify({ ...input, status: 'not_implemented' }) }] }
+		},
+	)
+
+	server.tool(
+		'get_loop_status',
+		'Get current status of closed-loop intelligence pipelines',
+		{ tenantId: z.string().uuid().optional() },
+		async (input) => {
+			return { content: [{ type: 'text' as const, text: JSON.stringify({ ...input, status: 'not_implemented' }) }] }
+		},
+	)
+
+	server.tool(
+		'get_prompt_lineage',
+		'Get prompt version history and lineage for a channel',
+		{ channel: z.string() },
+		async ({ channel }) => {
+			return { content: [{ type: 'text' as const, text: JSON.stringify({ channel, status: 'not_implemented' }) }] }
+		},
+	)
+
+	server.tool(
+		'get_loop_insights',
+		'Get aggregated loop intelligence insights over a time period',
+		{ days: z.number().int().min(1).max(90).default(7) },
+		async ({ days }) => {
+			return { content: [{ type: 'text' as const, text: JSON.stringify({ days, status: 'not_implemented' }) }] }
 		},
 	)
 
