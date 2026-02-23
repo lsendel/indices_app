@@ -5,6 +5,10 @@ import { isDue, parseCronSchedule, type FeedSubscription } from '../../src/servi
 import { enrichArticles } from '../../src/services/scraper/enrichment'
 import type { OpenAIAdapter } from '../../src/adapters/openai'
 
+vi.mock('../../src/utils/logger', () => ({
+	logger: { warn: vi.fn(), error: vi.fn(), info: vi.fn() },
+}))
+
 describe('Phase 5 Integration: Scraper Pipeline', () => {
 	it('end-to-end: batch → normalize → dedup → enrich', async () => {
 		// Step 1: Simulate batch from Rust worker
@@ -61,8 +65,9 @@ describe('Phase 5 Integration: Scraper Pipeline', () => {
 				brand: 'AcmeCorp',
 			}))
 
-		const enriched = await enrichArticles(adapter, enrichable)
+		const { results: enriched, failedCount } = await enrichArticles(adapter, enrichable)
 		expect(enriched.length).toBeGreaterThan(0)
+		expect(failedCount).toBe(0)
 		expect(enriched[0].sentiment.score).toBe(0.8)
 		expect(enriched[0].sentiment.themes).toContain('AI')
 	})

@@ -1,15 +1,10 @@
-import { eq, and } from 'drizzle-orm'
+import { eq, and, sql } from 'drizzle-orm'
 import { getDb } from '../../db/client'
 import { scrapeJobs } from '../../db/schema'
 
-export interface JobConfig {
-	jobType: 'web_crawl' | 'social_scrape' | 'feed_ingest'
-	seedUrls?: string[]
-	subreddits?: string[]
-	keywords?: string[]
-	maxPages?: number
-	feedSubscriptionId?: string
-}
+import type { ScrapeJobDispatch } from '../../types/api'
+
+export type JobConfig = ScrapeJobDispatch
 
 export async function createJob(tenantId: string, config: JobConfig, callbackUrl: string) {
 	const db = getDb()
@@ -48,7 +43,7 @@ export async function updateJobProgress(jobId: string, pagesScraped: number) {
 	const db = getDb()
 	await db
 		.update(scrapeJobs)
-		.set({ pagesScraped, status: 'running', startedAt: new Date() })
+		.set({ pagesScraped, status: 'running', startedAt: sql`COALESCE(${scrapeJobs.startedAt}, NOW())` })
 		.where(eq(scrapeJobs.id, jobId))
 }
 

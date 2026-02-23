@@ -1,13 +1,17 @@
 import { Hono } from 'hono'
 import type { AppEnv } from '../app'
 import { verifySignature } from '../services/scraper/dispatcher'
-import { processBatch, type BatchPayload } from '../services/scraper/batch-handler'
+import { processBatch } from '../services/scraper/batch-handler'
+import { batchPayload } from '../types/api'
+import { getConfig } from '../config'
+import { logger } from '../utils/logger'
 
 export function createIngestRoutes() {
 	const router = new Hono<AppEnv>()
 
 	router.post('/batch', async (c) => {
-		const secret = process.env.SCRAPER_SHARED_SECRET || 'dev-secret'
+		const config = getConfig()
+		const secret = config.SCRAPER_SHARED_SECRET
 		const signature = c.req.header('x-signature')
 		const timestamp = c.req.header('x-timestamp')
 		const body = await c.req.text()
@@ -16,8 +20,13 @@ export function createIngestRoutes() {
 			return c.json({ error: 'Missing HMAC headers' }, 401)
 		}
 
+		const ts = Number(timestamp)
+		if (!Number.isFinite(ts)) {
+			return c.json({ error: 'Invalid timestamp' }, 401)
+		}
+
 		const now = Math.floor(Date.now() / 1000)
-		if (Math.abs(now - parseInt(timestamp)) > 300) {
+		if (Math.abs(now - ts) > 300) {
 			return c.json({ error: 'Timestamp too old' }, 401)
 		}
 
@@ -25,8 +34,24 @@ export function createIngestRoutes() {
 			return c.json({ error: 'Invalid signature' }, 401)
 		}
 
-		const payload = JSON.parse(body) as BatchPayload & { tenant_id?: string }
-		const tenantId = payload.tenant_id ?? c.get('tenantId') ?? ''
+		let parsed: unknown
+		try {
+			parsed = JSON.parse(body)
+		} catch {
+			return c.json({ error: 'Invalid JSON body' }, 400)
+		}
+
+		const validation = batchPayload.safeParse(parsed)
+		if (!validation.success) {
+			logger.warn({ errors: validation.error.flatten() }, 'Invalid batch payload')
+			return c.json({ error: 'Invalid batch payload', details: validation.error.flatten() }, 422)
+		}
+
+		const payload = validation.data
+		const tenantId = payload.tenant_id
+		if (!tenantId) {
+			return c.json({ error: 'Missing tenant_id in payload' }, 400)
+		}
 
 		const result = await processBatch(payload, tenantId)
 

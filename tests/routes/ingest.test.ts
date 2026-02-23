@@ -17,6 +17,14 @@ vi.mock('../../src/services/scraper/dispatcher', () => ({
 	verifySignature: vi.fn().mockReturnValue(true),
 }))
 
+vi.mock('../../src/config', () => ({
+	getConfig: vi.fn().mockReturnValue({ SCRAPER_SHARED_SECRET: 'test-secret' }),
+}))
+
+vi.mock('../../src/utils/logger', () => ({
+	logger: { warn: vi.fn(), error: vi.fn(), info: vi.fn() },
+}))
+
 describe('ingest routes', () => {
 	let app: Hono<AppEnv>
 
@@ -70,6 +78,48 @@ describe('ingest routes', () => {
 				'Content-Type': 'application/json',
 				'x-signature': 'sig',
 				'x-timestamp': oldTimestamp,
+			},
+			body: JSON.stringify({ job_id: '1', batch_index: 0, is_final: true }),
+		})
+		expect(res.status).toBe(401)
+	})
+
+	it('rejects invalid JSON body', async () => {
+		const timestamp = Math.floor(Date.now() / 1000).toString()
+		const res = await app.request('/ingest/batch', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				'x-signature': 'valid-sig',
+				'x-timestamp': timestamp,
+			},
+			body: 'not-json{{{',
+		})
+		expect(res.status).toBe(400)
+	})
+
+	it('rejects payload missing tenant_id', async () => {
+		const batch = { job_id: 'job-1', batch_index: 0, is_final: true }
+		const timestamp = Math.floor(Date.now() / 1000).toString()
+		const res = await app.request('/ingest/batch', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				'x-signature': 'valid-sig',
+				'x-timestamp': timestamp,
+			},
+			body: JSON.stringify(batch),
+		})
+		expect(res.status).toBe(400)
+	})
+
+	it('rejects non-numeric timestamp', async () => {
+		const res = await app.request('/ingest/batch', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				'x-signature': 'valid-sig',
+				'x-timestamp': 'not-a-number',
 			},
 			body: JSON.stringify({ job_id: '1', batch_index: 0, is_final: true }),
 		})

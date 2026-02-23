@@ -1,6 +1,10 @@
 import { describe, it, expect, vi } from 'vitest'
 import { processBatch, type BatchPayload } from '../../../src/services/scraper/batch-handler'
 
+vi.mock('../../../src/utils/logger', () => ({
+	logger: { warn: vi.fn(), error: vi.fn(), info: vi.fn() },
+}))
+
 const mockDb = {
 	select: vi.fn().mockReturnValue({
 		from: vi.fn().mockReturnValue({

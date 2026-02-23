@@ -1,5 +1,6 @@
 import { createHmac, timingSafeEqual } from 'crypto'
 import { getConfig } from '../../config'
+import type { ScrapeJobDispatch } from '../../types/api'
 
 export function signPayload(body: string, timestamp: string, secret: string): string {
 	return createHmac('sha256', secret).update(`${timestamp}${body}`).digest('hex')
@@ -22,13 +23,7 @@ export function verifySignature(
 export async function dispatchScrapeJob(job: {
 	jobId: string
 	callbackUrl: string
-	config: {
-		seedUrls?: string[]
-		subreddits?: string[]
-		keywords?: string[]
-		jobType: 'web_crawl' | 'social_scrape' | 'feed_ingest'
-		maxPages?: number
-	}
+	config: ScrapeJobDispatch
 }) {
 	const config = getConfig()
 	const body = JSON.stringify(job)

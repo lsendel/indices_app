@@ -22,6 +22,11 @@ vi.mock('../../src/services/scraper/job-tracker', () => ({
 		id: 'job-1',
 		status: 'cancelled',
 	}),
+	failJob: vi.fn().mockResolvedValue(undefined),
+}))
+
+vi.mock('../../src/utils/logger', () => ({
+	logger: { warn: vi.fn(), error: vi.fn(), info: vi.fn() },
 }))
 
 vi.mock('../../src/services/scraper/dispatcher', () => ({

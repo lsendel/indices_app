@@ -5,6 +5,10 @@ import {
 	type FeedSubscription,
 } from '../../../src/services/scraper/feed-manager'
 
+vi.mock('../../../src/utils/logger', () => ({
+	logger: { warn: vi.fn(), error: vi.fn(), info: vi.fn() },
+}))
+
 describe('parseCronSchedule', () => {
 	it('parses "0 */6 * * *" as every 6 hours interval', () => {
 		const interval = parseCronSchedule('0 */6 * * *')

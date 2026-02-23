@@ -1,6 +1,7 @@
-import { eq, and } from 'drizzle-orm'
+import { eq, and, sql } from 'drizzle-orm'
 import { getDb } from '../../db/client'
 import { feedSubscriptions } from '../../db/schema'
+import { logger } from '../../utils/logger'
 
 export interface FeedSubscription {
 	id: string
@@ -67,26 +68,21 @@ export async function markFetched(feedId: string, contentHash?: string) {
 		.where(eq(feedSubscriptions.id, feedId))
 }
 
-/** Increment error count on a feed subscription. */
+/** Atomically increment error count on a feed subscription. Deactivates after 5 consecutive errors. */
 export async function recordFeedError(feedId: string, error: string) {
 	const db = getDb()
-	const [feed] = await db
-		.select()
-		.from(feedSubscriptions)
-		.where(eq(feedSubscriptions.id, feedId))
-
-	if (!feed) return
-
-	const newCount = feed.errorCount + 1
-	const deactivate = newCount >= 5
-
-	await db
+	const [updated] = await db
 		.update(feedSubscriptions)
 		.set({
-			errorCount: newCount,
+			errorCount: sql`${feedSubscriptions.errorCount} + 1`,
 			lastError: error,
-			active: deactivate ? false : feed.active,
+			active: sql`CASE WHEN ${feedSubscriptions.errorCount} + 1 >= 5 THEN false ELSE ${feedSubscriptions.active} END`,
 			updatedAt: new Date(),
 		})
 		.where(eq(feedSubscriptions.id, feedId))
+		.returning()
+
+	if (updated && !updated.active) {
+		logger.warn({ feedId, errorCount: updated.errorCount }, 'Feed deactivated after consecutive errors')
+	}
 }
