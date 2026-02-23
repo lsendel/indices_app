@@ -25,6 +25,7 @@ import { createPlatformRoutes } from './platforms'
 import { createPublishRoutes } from './publish'
 import { createMetaWebhookRoutes } from './webhooks/meta'
 import { createEngagementRoutes } from './engagement'
+import { createLoopRoutes } from './loops'
 
 export function registerRoutes(app: Hono<AppEnv>) {
 	// Webhook routes (HMAC-authenticated, no user session)
@@ -55,4 +56,5 @@ export function registerRoutes(app: Hono<AppEnv>) {
 	app.route('/api/v1/platforms', createPlatformRoutes())
 	app.route('/api/v1/publish', createPublishRoutes())
 	app.route('/api/v1/engagement', createEngagementRoutes())
+	app.route('/api/v1/loops', createLoopRoutes())
 }
