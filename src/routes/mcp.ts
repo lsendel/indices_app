@@ -8,6 +8,7 @@ import { handleGetExperimentAllocation } from '../mcp/tools/experiments'
 import { handleAuditBrandContent } from '../mcp/tools/brand'
 import { handleGenerateWorkflow } from '../mcp/tools/workflows'
 import { createOpenAIAdapter } from '../adapters/openai'
+import { handleGetLoopStatus, handleGetPromptLineage, handleGetLoopInsights } from '../mcp/tools/loops'
 
 const TOOL_DESCRIPTIONS: Record<string, string> = {
 	get_sentiment_analysis: 'Analyze brand sentiment over a time period',
@@ -18,6 +19,9 @@ const TOOL_DESCRIPTIONS: Record<string, string> = {
 	get_competitive_intel: 'Get competitive intelligence for a brand',
 	audit_brand_content: 'Audit content against a brand kit',
 	generate_workflow: 'Auto-generate a campaign workflow DAG',
+	get_loop_status: 'Get current status of closed-loop intelligence pipelines',
+	get_prompt_lineage: 'Get prompt version history and lineage for a channel',
+	get_loop_insights: 'Get aggregated loop intelligence insights over a time period',
 }
 
 export function createMcpRoutes() {
@@ -43,6 +47,9 @@ export function createMcpRoutes() {
 			get_competitive_intel: () => handleGetCompetitiveIntel(args.competitor as string, tenantId),
 			audit_brand_content: () => handleAuditBrandContent(args.content as string, args.brandKitId as string, tenantId),
 			generate_workflow: () => handleGenerateWorkflow(args.goal as string, adapter),
+			get_loop_status: () => handleGetLoopStatus(tenantId),
+			get_prompt_lineage: () => handleGetPromptLineage(args.channel as string, tenantId),
+			get_loop_insights: () => handleGetLoopInsights((args.days as number) ?? 7, tenantId),
 		}
 
 		const handler = handlers[tool]

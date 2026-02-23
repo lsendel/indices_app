@@ -9,13 +9,14 @@ import { enrichArticles } from '../../src/services/scraper/enrichment'
 import type { OpenAIAdapter } from '../../src/adapters/openai'
 
 describe('Phase 6 Integration: MCP + SSE + Pipeline', () => {
-	it('MCP server exposes all 8 intelligence tools', () => {
+	it('MCP server exposes all 11 intelligence tools', () => {
 		const names = getMcpToolNames()
-		expect(names).toHaveLength(8)
+		expect(names).toHaveLength(11)
 		expect(names).toEqual(expect.arrayContaining([
 			'get_sentiment_analysis', 'get_hot_accounts', 'generate_persona',
 			'score_lead', 'get_experiment_allocation', 'get_competitive_intel',
 			'audit_brand_content', 'generate_workflow',
+			'get_loop_status', 'get_prompt_lineage', 'get_loop_insights',
 		]))
 	})
 
