@@ -21,6 +21,7 @@ import { createFeedRoutes } from './feeds'
 import { createMcpRoutes } from './mcp'
 import { createSseRoutes } from './sse'
 import { createAnalyticsRoutes } from './analytics'
+import { createPlatformRoutes } from './platforms'
 
 export function registerRoutes(app: Hono<AppEnv>) {
 	// Webhook routes (HMAC-authenticated, no user session)
@@ -47,4 +48,5 @@ export function registerRoutes(app: Hono<AppEnv>) {
 	app.route('/api/v1/mcp', createMcpRoutes())
 	app.route('/api/v1/sse', createSseRoutes())
 	app.route('/api/v1/analytics', createAnalyticsRoutes())
+	app.route('/api/v1/platforms', createPlatformRoutes())
 }
