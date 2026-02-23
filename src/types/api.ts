@@ -242,3 +242,42 @@ export const scrapeJobCancel = z.object({
 })
 
 export type ScrapeJobCancel = z.infer<typeof scrapeJobCancel>
+
+// Platform connections (Phase 8)
+export const platformConnect = z.object({
+	platform: z.enum(['instagram', 'facebook', 'whatsapp', 'tiktok', 'linkedin', 'wordpress', 'blog']),
+})
+
+export const wordpressConnect = z.object({
+	siteUrl: z.string().url(),
+	username: z.string().min(1),
+	appPassword: z.string().min(1),
+})
+
+export const blogConnect = z.object({
+	webhookUrl: z.string().url(),
+	apiKey: z.string().optional(),
+	headers: z.record(z.string(), z.string()).optional(),
+})
+
+export const publishRequest = z.object({
+	platform: z.enum(['instagram', 'facebook', 'whatsapp', 'tiktok', 'linkedin', 'wordpress', 'blog']),
+	channel: z.enum(['email', 'sms', 'voice', 'whatsapp', 'linkedin', 'facebook', 'instagram', 'tiktok', 'youtube', 'vimeo', 'video']),
+	content: z.record(z.string(), z.any()),
+	campaignId: z.string().uuid().optional(),
+	status: z.enum(['publish', 'draft', 'schedule']).default('publish'),
+	scheduledAt: z.string().datetime().optional(),
+})
+
+export const publishBatchRequest = z.object({
+	platforms: z.array(z.enum(['instagram', 'facebook', 'whatsapp', 'tiktok', 'linkedin', 'wordpress', 'blog'])).min(1),
+	channel: z.string(),
+	content: z.record(z.string(), z.any()),
+	campaignId: z.string().uuid().optional(),
+})
+
+export type PlatformConnect = z.infer<typeof platformConnect>
+export type WordpressConnect = z.infer<typeof wordpressConnect>
+export type BlogConnect = z.infer<typeof blogConnect>
+export type PublishRequest = z.infer<typeof publishRequest>
+export type PublishBatchRequest = z.infer<typeof publishBatchRequest>
