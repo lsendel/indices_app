@@ -60,8 +60,8 @@ export function createPipelineExecutor(bus: EventBus): PipelineExecutor {
 
 				if (evaluation.gated) return
 
-				lastRunMap.set(cadenceKey, now)
 				await config.action(event, evaluation.configOverrides)
+				lastRunMap.set(cadenceKey, now)
 			})
 		},
 	}

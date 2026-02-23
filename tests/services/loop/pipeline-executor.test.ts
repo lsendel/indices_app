@@ -72,6 +72,28 @@ describe('Pipeline Executor', () => {
 		)
 	})
 
+	it('should not consume cadence window when action fails', async () => {
+		const bus = createEventBus()
+		const action = vi.fn()
+			.mockRejectedValueOnce(new Error('transient failure'))
+			.mockResolvedValueOnce(undefined)
+		const executor = createPipelineExecutor(bus)
+
+		executor.register({
+			name: 'test-pipeline',
+			eventType: 'engagement.threshold_reached',
+			action,
+			getRules: async () => [],
+			getContext: async () => ({}),
+			cadenceMin: 60,
+		})
+
+		await bus.emit('tenant-1', 'engagement.threshold_reached', { channel: 'email' })
+		await bus.emit('tenant-1', 'engagement.threshold_reached', { channel: 'email' })
+
+		expect(action).toHaveBeenCalledTimes(2)
+	})
+
 	it('should respect pipeline cadence (skip if too recent)', async () => {
 		const bus = createEventBus()
 		const action = vi.fn()

@@ -91,6 +91,12 @@ function evaluateCondition(condition: Condition, payload: Record<string, unknown
 	}
 }
 
+/**
+ * Evaluate rules against a payload. This function is pure — it does not
+ * mutate rules or persist state. Callers are responsible for updating
+ * `rule.lastFiredAt` on matched rules to make cooldown enforcement
+ * effective across invocations.
+ */
 export function evaluateRules(
 	rules: Rule[],
 	payload: Record<string, unknown>,

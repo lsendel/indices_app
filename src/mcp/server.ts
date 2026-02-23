@@ -1,5 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { z } from 'zod'
+import { handleGetLoopStatus, handleGetPromptLineage, handleGetLoopInsights } from './tools/loops'
 
 const TOOL_DEFINITIONS = [
 	'get_sentiment_analysis',
@@ -102,7 +103,8 @@ export function createMcpServer(): McpServer {
 		'Get current status of closed-loop intelligence pipelines',
 		{ tenantId: z.string().uuid().optional() },
 		async (input) => {
-			return { content: [{ type: 'text' as const, text: JSON.stringify({ ...input, status: 'not_implemented' }) }] }
+			const result = await handleGetLoopStatus(input.tenantId ?? 'unknown')
+			return { content: [{ type: 'text' as const, text: JSON.stringify(result) }] }
 		},
 	)
 
@@ -111,7 +113,8 @@ export function createMcpServer(): McpServer {
 		'Get prompt version history and lineage for a channel',
 		{ channel: z.string() },
 		async ({ channel }) => {
-			return { content: [{ type: 'text' as const, text: JSON.stringify({ channel, status: 'not_implemented' }) }] }
+			const result = await handleGetPromptLineage(channel, 'unknown')
+			return { content: [{ type: 'text' as const, text: JSON.stringify(result) }] }
 		},
 	)
 
@@ -120,7 +123,8 @@ export function createMcpServer(): McpServer {
 		'Get aggregated loop intelligence insights over a time period',
 		{ days: z.number().int().min(1).max(90).default(7) },
 		async ({ days }) => {
-			return { content: [{ type: 'text' as const, text: JSON.stringify({ days, status: 'not_implemented' }) }] }
+			const result = await handleGetLoopInsights(days, 'unknown')
+			return { content: [{ type: 'text' as const, text: JSON.stringify(result) }] }
 		},
 	)
 
