@@ -72,7 +72,11 @@ Suggest specific improvements.`
 
 	try {
 		const response = await adapter.generateContent(prompt, systemPrompt)
-		return JSON.parse(response) as GradientResult
+		const parsed = JSON.parse(response) as Record<string, unknown>
+		if (typeof parsed.gradient !== 'string' || typeof parsed.suggestedPrompt !== 'string') {
+			return { gradient: 'Unable to compute gradient', suggestedPrompt: input.prompt }
+		}
+		return { gradient: parsed.gradient, suggestedPrompt: parsed.suggestedPrompt }
 	} catch (e) {
 		if (!(e instanceof SyntaxError)) throw e
 		console.warn('computeGradient: failed to parse LLM response', { error: e.message })

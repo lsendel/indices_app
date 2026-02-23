@@ -1,5 +1,6 @@
 import { pgTable, text, timestamp, uuid, jsonb, integer, index } from 'drizzle-orm/pg-core'
 import { tenants } from './tenants'
+import { agentConfigs } from './agent-configs'
 
 export const workflows = pgTable('workflows', {
 	id: uuid('id').defaultRandom().primaryKey(),
@@ -21,7 +22,7 @@ export const workflowNodes = pgTable('workflow_nodes', {
 	name: text('name').notNull(),
 	description: text('description').notNull(),
 	status: text('status', { enum: ['pending', 'running', 'completed', 'failed', 'awaiting_approval'] }).default('pending').notNull(),
-	agentConfigId: uuid('agent_config_id'),
+	agentConfigId: uuid('agent_config_id').references(() => agentConfigs.id),
 	inputs: jsonb('inputs').default([]).notNull(),
 	outputs: jsonb('outputs').default([]).notNull(),
 	inputValues: jsonb('input_values').default({}).notNull(),

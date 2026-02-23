@@ -8,6 +8,8 @@ export const evolutionCycles = pgTable('evolution_cycles', {
 	agentConfigId: uuid('agent_config_id').references(() => agentConfigs.id),
 	generation: integer('generation').notNull(),
 	strategy: text('strategy', { enum: ['textgrad', 'ga', 'de', 'hybrid'] }).notNull(),
+	populationSize: integer('population_size').default(5).notNull(),
+	generations: integer('generations').default(10).notNull(),
 	status: text('status', { enum: ['pending', 'running', 'completed', 'failed'] }).default('pending').notNull(),
 	bestScore: real('best_score'),
 	createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),

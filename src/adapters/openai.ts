@@ -30,7 +30,13 @@ export function createOpenAIAdapter(): OpenAIAdapter {
 			})
 
 			const content = response.choices[0]?.message?.content ?? '{}'
-			return JSON.parse(content) as { score: number; themes: string[] }
+			try {
+				return JSON.parse(content) as { score: number; themes: string[] }
+			} catch (e) {
+				if (!(e instanceof SyntaxError)) throw e
+				console.warn('analyzeSentiment: failed to parse OpenAI response', { brand, error: e.message })
+				return { score: 0, themes: [] }
+			}
 		},
 
 		async generateContent(prompt: string, systemPrompt?: string) {

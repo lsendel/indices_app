@@ -36,6 +36,16 @@ describe('computeLoss', () => {
 })
 
 describe('computeGradient', () => {
+	it('returns fallback when LLM response has wrong shape', async () => {
+		const adapter = mockAdapter(JSON.stringify({ foo: 'bar' }))
+		const result = await computeGradient(adapter, {
+			prompt: 'Write a marketing email.',
+			lossAnalysis: 'Too generic.',
+		})
+		expect(result.gradient).toBe('Unable to compute gradient')
+		expect(result.suggestedPrompt).toBe('Write a marketing email.')
+	})
+
 	it('asks LLM for prompt improvement suggestions', async () => {
 		const adapter = mockAdapter(JSON.stringify({
 			gradient: 'Add personalization tokens and urgency language.',

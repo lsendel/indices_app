@@ -56,12 +56,12 @@ export function createWorkflowRoutes() {
 		const nodes = await db
 			.select()
 			.from(workflowNodes)
-			.where(eq(workflowNodes.workflowId, id))
+			.where(eq(workflowNodes.workflowId, workflow.id))
 
 		const edges = await db
 			.select()
 			.from(workflowEdges)
-			.where(eq(workflowEdges.workflowId, id))
+			.where(eq(workflowEdges.workflowId, workflow.id))
 
 		return c.json({ ...workflow, nodes, edges })
 	})

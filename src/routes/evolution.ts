@@ -36,6 +36,8 @@ export function createEvolutionRoutes() {
 			agentConfigId: data.agentConfigId,
 			generation: 1,
 			strategy: data.strategy,
+			populationSize: data.populationSize,
+			generations: data.generations,
 		}).returning()
 
 		return c.json(created, 201)
