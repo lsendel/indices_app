@@ -23,7 +23,7 @@ describe('enrichArticles', () => {
 		}
 		await expect(
 			enrichArticles(adapter, [{ id: 'a1', title: 'Test', content: 'Content', brand: 'B' }]),
-		).rejects.toThrow('all 1 articles failed enrichment')
+		).rejects.toThrow('all 1 articles failed enrichment (last error: Error: LLM error)')
 	})
 
 	it('returns partial results when some articles fail', async () => {

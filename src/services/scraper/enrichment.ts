@@ -15,6 +15,7 @@ export interface EnrichmentResult {
 export async function enrichArticles(adapter: OpenAIAdapter, articles: ArticleForEnrichment[]): Promise<EnrichmentResult[]> {
 	const results: EnrichmentResult[] = []
 	let failures = 0
+	let lastError = ''
 	for (const article of articles) {
 		if (!article.content) continue
 		try {
@@ -22,16 +23,17 @@ export async function enrichArticles(adapter: OpenAIAdapter, articles: ArticleFo
 			results.push({ articleId: article.id, sentiment })
 		} catch (e) {
 			failures++
+			lastError = e instanceof Error ? `${e.constructor.name}: ${e.message}` : String(e)
 			console.warn('enrichArticles: failed to enrich article', {
 				articleId: article.id,
 				brand: article.brand,
-				error: e instanceof Error ? e.message : String(e),
+				error: lastError,
 			})
 		}
 	}
 	const attempted = articles.filter(a => a.content).length
 	if (failures > 0 && failures === attempted) {
-		throw new Error(`enrichArticles: all ${failures} articles failed enrichment`)
+		throw new Error(`enrichArticles: all ${failures} articles failed enrichment (last error: ${lastError})`)
 	}
 	return results
 }
