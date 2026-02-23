@@ -1,12 +1,13 @@
 import { describe, it, expect, vi } from 'vitest'
 import { generateWorkflow } from '../../../src/services/evo/workflow-gen'
-import type { OpenAIAdapter } from '../../../src/adapters/openai'
+import type { LLMProvider } from '../../../src/adapters/llm/types'
 
-function mockAdapter(): OpenAIAdapter {
+function mockProvider(): LLMProvider {
 	const callCount = { n: 0 }
 	return {
-		analyzeSentiment: vi.fn(),
-		generateContent: vi.fn().mockImplementation(() => {
+		name: 'mock',
+		capabilities: new Set(['text', 'json']),
+		generateText: vi.fn().mockImplementation(() => {
 			callCount.n++
 			if (callCount.n === 1) {
 				// Task planner response
@@ -33,13 +34,14 @@ function mockAdapter(): OpenAIAdapter {
 				instructionPrompt: 'Do the task.',
 			}))
 		}),
+		generateJSON: vi.fn(),
 	}
 }
 
 describe('generateWorkflow', () => {
 	it('generates a complete workflow from a goal', async () => {
-		const adapter = mockAdapter()
-		const workflow = await generateWorkflow(adapter, 'Launch product campaign')
+		const provider = mockProvider()
+		const workflow = await generateWorkflow(provider, 'Launch product campaign')
 
 		expect(workflow.goal).toBe('Launch product campaign')
 		expect(workflow.graph.nodes).toHaveLength(2)
@@ -50,19 +52,21 @@ describe('generateWorkflow', () => {
 	})
 
 	it('validates the generated graph is a DAG', async () => {
-		const adapter = mockAdapter()
-		const workflow = await generateWorkflow(adapter, 'Test goal')
+		const provider = mockProvider()
+		const workflow = await generateWorkflow(provider, 'Test goal')
 
 		// inferEdges + validateGraph are called internally
 		expect(workflow.graph.nodes.every(n => n.status === 'pending')).toBe(true)
 	})
 
 	it('returns empty workflow when planner returns nothing', async () => {
-		const adapter: OpenAIAdapter = {
-			analyzeSentiment: vi.fn(),
-			generateContent: vi.fn().mockResolvedValue('[]'),
+		const provider: LLMProvider = {
+			name: 'mock',
+			capabilities: new Set(['text', 'json']),
+			generateText: vi.fn().mockResolvedValue('[]'),
+			generateJSON: vi.fn(),
 		}
-		const workflow = await generateWorkflow(adapter, 'Empty goal')
+		const workflow = await generateWorkflow(provider, 'Empty goal')
 		expect(workflow.graph.nodes).toHaveLength(0)
 		expect(workflow.agents).toHaveLength(0)
 	})

@@ -1,18 +1,20 @@
 import { describe, it, expect, vi } from 'vitest'
 import { handleGeneratePersona } from '../../../src/mcp/tools/personas'
-import type { OpenAIAdapter } from '../../../src/adapters/openai'
+import type { LLMProvider } from '../../../src/adapters/llm/types'
 
 describe('handleGeneratePersona', () => {
 	it('generates a persona from a segment', async () => {
-		const adapter: OpenAIAdapter = {
-			analyzeSentiment: vi.fn(),
-			generateContent: vi.fn().mockResolvedValue(JSON.stringify({
+		const provider: LLMProvider = {
+			name: 'mock',
+			capabilities: new Set(['text', 'json']),
+			generateText: vi.fn().mockResolvedValue(JSON.stringify({
 				name: 'Marketing Director',
 				description: 'Mid-career professional',
 				motivations: ['ROI'],
 			})),
+			generateJSON: vi.fn(),
 		}
-		const result = await handleGeneratePersona('segment-1', adapter, 'tenant-1')
+		const result = await handleGeneratePersona('segment-1', provider, 'tenant-1')
 		expect(result.persona).toBeDefined()
 	})
 })

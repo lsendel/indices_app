@@ -1,4 +1,5 @@
-import type { OpenAIAdapter } from '../../adapters/openai'
+import { z } from 'zod'
+import type { LLMProvider } from '../../adapters/llm/types'
 import { logger } from '../../utils/logger'
 
 export interface ArticleForEnrichment {
@@ -13,8 +14,10 @@ export interface EnrichmentResult {
 	sentiment: { score: number; themes: string[] }
 }
 
+const sentimentSchema = z.object({ score: z.number(), themes: z.array(z.string()) })
+
 export async function enrichArticles(
-	adapter: OpenAIAdapter,
+	provider: LLMProvider,
 	articles: ArticleForEnrichment[],
 ): Promise<{ results: EnrichmentResult[]; failedCount: number }> {
 	const withContent = articles.filter(a => a.content !== null && a.content.length > 0)
@@ -24,7 +27,11 @@ export async function enrichArticles(
 
 	for (const article of withContent) {
 		try {
-			const sentiment = await adapter.analyzeSentiment(article.content!, article.brand)
+			const sentiment = await provider.generateJSON(
+				`Analyze sentiment about "${article.brand}" in this text:\n\n${article.content!.slice(0, 2000)}`,
+				sentimentSchema,
+				{ systemPrompt: 'You analyze sentiment. Return JSON: { "score": number (-1 to 1), "themes": string[] }' },
+			)
 			results.push({ articleId: article.id, sentiment })
 		} catch (e) {
 			failedCount++

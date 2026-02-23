@@ -1,4 +1,4 @@
-import type { OpenAIAdapter } from '../../adapters/openai'
+import type { LLMProvider } from '../../adapters/llm/types'
 
 export interface ScoredPrompt {
 	prompt: string
@@ -35,14 +35,14 @@ export function selectParents(population: ScoredPrompt[], count: number): Scored
  * @returns Child prompt combining elements of both parents
  */
 export async function crossoverPrompts(
-	adapter: OpenAIAdapter,
+	provider: LLMProvider,
 	parent1: string,
 	parent2: string,
 ): Promise<string> {
 	const systemPrompt = 'You combine two marketing prompt strategies into one improved prompt. Return ONLY the combined prompt text.'
 	const prompt = `Parent prompt 1: ${parent1}\n\nParent prompt 2: ${parent2}\n\nCombine the best elements of both into a single improved prompt.`
 
-	return adapter.generateContent(prompt, systemPrompt)
+	return provider.generateText(prompt, { systemPrompt })
 }
 
 /**
@@ -52,13 +52,13 @@ export async function crossoverPrompts(
  * @returns Mutated prompt with creative variations
  */
 export async function mutatePrompt(
-	adapter: OpenAIAdapter,
+	provider: LLMProvider,
 	original: string,
 ): Promise<string> {
 	const systemPrompt = 'You introduce creative variations into marketing prompts while preserving their core intent. Return ONLY the mutated prompt text.'
 	const prompt = `Original prompt: ${original}\n\nIntroduce a creative variation — add a new technique, adjust the angle, or enhance the strategy.`
 
-	return adapter.generateContent(prompt, systemPrompt)
+	return provider.generateText(prompt, { systemPrompt })
 }
 
 /**
@@ -68,7 +68,7 @@ export async function mutatePrompt(
  * @returns Target prompt enhanced with innovations from the donor difference
  */
 export async function deMutatePrompt(
-	adapter: OpenAIAdapter,
+	provider: LLMProvider,
 	input: { target: string; donor1: string; donor2: string },
 ): Promise<string> {
 	const systemPrompt = 'You apply differential evolution to prompts. Identify the innovations in donor1 that are absent in donor2, then apply those innovations to the target. Return ONLY the improved prompt text.'
@@ -78,5 +78,5 @@ Donor 2 (baseline): ${input.donor2}
 
 Identify what donor1 has that donor2 lacks, then enhance the target with those innovations.`
 
-	return adapter.generateContent(prompt, systemPrompt)
+	return provider.generateText(prompt, { systemPrompt })
 }

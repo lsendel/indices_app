@@ -1,4 +1,4 @@
-import type { OpenAIAdapter } from '../../adapters/openai'
+import type { LLMProvider } from '../../adapters/llm/types'
 import type { WorkFlowGraph } from '../../types/workflow'
 import type { AgentConfig } from '../../types/agents'
 import { decomposeGoal } from './task-planner'
@@ -18,10 +18,10 @@ export interface GeneratedWorkflow {
  * @returns Generated workflow with graph and agent configs
  */
 export async function generateWorkflow(
-	adapter: OpenAIAdapter,
+	provider: LLMProvider,
 	goal: string,
 ): Promise<GeneratedWorkflow> {
-	const nodes = await decomposeGoal(adapter, goal)
+	const nodes = await decomposeGoal(provider, goal)
 
 	if (nodes.length === 0) {
 		return { goal, graph: { goal, nodes: [], edges: [] }, agents: [] }
@@ -35,11 +35,11 @@ export async function generateWorkflow(
 		return {
 			goal,
 			graph: { goal, nodes, edges: [] },
-			agents: await Promise.all(nodes.map(n => generateAgentConfig(adapter, n))),
+			agents: await Promise.all(nodes.map(n => generateAgentConfig(provider, n))),
 		}
 	}
 
-	const agents = await Promise.all(nodes.map(n => generateAgentConfig(adapter, n)))
+	const agents = await Promise.all(nodes.map(n => generateAgentConfig(provider, n)))
 
 	return {
 		goal,

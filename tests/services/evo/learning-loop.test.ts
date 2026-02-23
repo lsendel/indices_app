@@ -1,11 +1,12 @@
 import { describe, it, expect, vi } from 'vitest'
 import { runLearningIteration, type LearningContext } from '../../../src/services/evo/learning-loop'
-import type { OpenAIAdapter } from '../../../src/adapters/openai'
+import type { LLMProvider } from '../../../src/adapters/llm/types'
 
-function mockAdapter(): OpenAIAdapter {
+function mockProvider(): LLMProvider {
 	return {
-		analyzeSentiment: vi.fn(),
-		generateContent: vi.fn()
+		name: 'mock',
+		capabilities: new Set(['text', 'json']),
+		generateText: vi.fn()
 			// evaluateCampaign: computeMetricScore is pure, LLM quality assessment
 			.mockResolvedValueOnce(JSON.stringify({ qualityScore: 0.7, feedback: 'Good engagement' }))
 			// optimizer: computeLoss
@@ -18,12 +19,13 @@ function mockAdapter(): OpenAIAdapter {
 			.mockResolvedValueOnce('Crossover child.')
 			// optimizer: mutate
 			.mockResolvedValueOnce('Mutated child.'),
+		generateJSON: vi.fn(),
 	}
 }
 
 describe('runLearningIteration', () => {
-	it('runs evaluate → optimize cycle and returns results', async () => {
-		const adapter = mockAdapter()
+	it('runs evaluate -> optimize cycle and returns results', async () => {
+		const provider = mockProvider()
 		const context: LearningContext = {
 			currentPrompt: 'Write email for product launch.',
 			campaignOutput: 'Dear customer, check out our new product!',
@@ -38,7 +40,7 @@ describe('runLearningIteration', () => {
 			strategy: 'hybrid',
 		}
 
-		const result = await runLearningIteration(adapter, context)
+		const result = await runLearningIteration(provider, context)
 		expect(result.evaluation.combinedScore).toBeGreaterThan(0)
 		expect(result.optimization.textgradPrompt).toBeDefined()
 		expect(result.optimization.gaChildren.length).toBeGreaterThan(0)
@@ -46,7 +48,7 @@ describe('runLearningIteration', () => {
 	})
 
 	it('collects all candidate prompts for scoring', async () => {
-		const adapter = mockAdapter()
+		const provider = mockProvider()
 		const context: LearningContext = {
 			currentPrompt: 'Base prompt.',
 			campaignOutput: 'Some output.',
@@ -61,7 +63,7 @@ describe('runLearningIteration', () => {
 			strategy: 'hybrid',
 		}
 
-		const result = await runLearningIteration(adapter, context)
+		const result = await runLearningIteration(provider, context)
 		// Should include: textgrad prompt + GA children
 		expect(result.candidatePrompts.length).toBeGreaterThanOrEqual(1)
 	})

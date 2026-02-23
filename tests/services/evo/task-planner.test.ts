@@ -1,12 +1,14 @@
 import { describe, it, expect, vi } from 'vitest'
 import { decomposeGoal } from '../../../src/services/evo/task-planner'
-import type { OpenAIAdapter } from '../../../src/adapters/openai'
+import type { LLMProvider } from '../../../src/adapters/llm/types'
 import type { WorkFlowNode } from '../../../src/types/workflow'
 
-function mockAdapter(response: string): OpenAIAdapter {
+function mockProvider(response: string): LLMProvider {
 	return {
-		analyzeSentiment: vi.fn(),
-		generateContent: vi.fn().mockResolvedValue(response),
+		name: 'mock',
+		capabilities: new Set(['text', 'json']),
+		generateText: vi.fn().mockResolvedValue(response),
+		generateJSON: vi.fn(),
 	}
 }
 
@@ -26,9 +28,9 @@ describe('decomposeGoal', () => {
 				outputs: [{ name: 'email_body', description: 'Draft email HTML', required: true }],
 			},
 		])
-		const adapter = mockAdapter(llmResponse)
+		const provider = mockProvider(llmResponse)
 
-		const nodes = await decomposeGoal(adapter, 'Launch product email campaign')
+		const nodes = await decomposeGoal(provider, 'Launch product email campaign')
 		expect(nodes).toHaveLength(2)
 		expect(nodes[0].name).toBe('research_audience')
 		expect(nodes[0].status).toBe('pending')
@@ -36,19 +38,19 @@ describe('decomposeGoal', () => {
 		expect(nodes[1].inputs[0].name).toBe('audience_profile')
 	})
 
-	it('passes goal to generateContent with correct system prompt', async () => {
-		const adapter = mockAdapter('[]')
-		await decomposeGoal(adapter, 'My goal')
+	it('passes goal to generateText with correct system prompt', async () => {
+		const provider = mockProvider('[]')
+		await decomposeGoal(provider, 'My goal')
 
-		expect(adapter.generateContent).toHaveBeenCalledWith(
+		expect(provider.generateText).toHaveBeenCalledWith(
 			expect.stringContaining('My goal'),
-			expect.stringContaining('task planner'),
+			expect.objectContaining({ systemPrompt: expect.stringContaining('task planner') }),
 		)
 	})
 
 	it('returns empty array for invalid LLM response', async () => {
-		const adapter = mockAdapter('not valid json')
-		const nodes = await decomposeGoal(adapter, 'Some goal')
+		const provider = mockProvider('not valid json')
+		const nodes = await decomposeGoal(provider, 'Some goal')
 		expect(nodes).toEqual([])
 	})
 })

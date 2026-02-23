@@ -7,7 +7,8 @@ import { handleGeneratePersona } from '../mcp/tools/personas'
 import { handleGetExperimentAllocation } from '../mcp/tools/experiments'
 import { handleAuditBrandContent } from '../mcp/tools/brand'
 import { handleGenerateWorkflow } from '../mcp/tools/workflows'
-import { createOpenAIAdapter } from '../adapters/openai'
+import { createLLMRouterFromConfig } from '../adapters/llm/factory'
+import { getConfig } from '../config'
 import { handleGetLoopStatus, handleGetPromptLineage, handleGetLoopInsights } from '../mcp/tools/loops'
 
 const TOOL_DESCRIPTIONS: Record<string, string> = {
@@ -36,17 +37,18 @@ export function createMcpRoutes() {
 		const tenantId = c.get('tenantId')!
 		const { tool, arguments: args } = await c.req.json<{ tool: string; arguments: Record<string, unknown> }>()
 
-		const adapter = createOpenAIAdapter()
+		const router = createLLMRouterFromConfig(getConfig())
+		const provider = router.resolve('analysis:persona')
 
 		const handlers: Record<string, () => Promise<unknown>> = {
 			get_sentiment_analysis: () => handleGetSentimentAnalysis(args.brand as string, (args.timeframeDays as number) ?? 30, tenantId),
 			get_hot_accounts: () => handleGetHotAccounts((args.threshold as number) ?? 70, (args.limit as number) ?? 10, tenantId),
-			generate_persona: () => handleGeneratePersona(args.segmentId as string, adapter, tenantId),
+			generate_persona: () => handleGeneratePersona(args.segmentId as string, provider, tenantId),
 			score_lead: () => handleScoreLead(args as { email?: string; company?: string; signals: string[] }, tenantId),
 			get_experiment_allocation: () => handleGetExperimentAllocation(args.experimentId as string, tenantId),
 			get_competitive_intel: () => handleGetCompetitiveIntel(args.competitor as string, tenantId),
 			audit_brand_content: () => handleAuditBrandContent(args.content as string, args.brandKitId as string, tenantId),
-			generate_workflow: () => handleGenerateWorkflow(args.goal as string, adapter),
+			generate_workflow: () => handleGenerateWorkflow(args.goal as string, provider),
 			get_loop_status: () => handleGetLoopStatus(tenantId),
 			get_prompt_lineage: () => handleGetPromptLineage(args.channel as string, tenantId),
 			get_loop_insights: () => handleGetLoopInsights((args.days as number) ?? 7, tenantId),

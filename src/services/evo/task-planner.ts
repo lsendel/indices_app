@@ -1,4 +1,4 @@
-import type { OpenAIAdapter } from '../../adapters/openai'
+import type { LLMProvider } from '../../adapters/llm/types'
 import type { WorkFlowNode } from '../../types/workflow'
 
 const SYSTEM_PROMPT = `You are a marketing task planner. Decompose a marketing goal into a sequence of concrete sub-tasks. Return JSON array:
@@ -20,12 +20,12 @@ interface RawTask {
  * @returns Array of workflow nodes; empty array if LLM returns unparseable output
  */
 export async function decomposeGoal(
-	adapter: OpenAIAdapter,
+	provider: LLMProvider,
 	goal: string,
 ): Promise<WorkFlowNode[]> {
-	const response = await adapter.generateContent(
+	const response = await provider.generateText(
 		`Decompose this marketing goal into sub-tasks:\n\n${goal}`,
-		SYSTEM_PROMPT,
+		{ systemPrompt: SYSTEM_PROMPT },
 	)
 
 	try {

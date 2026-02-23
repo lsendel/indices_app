@@ -1,4 +1,4 @@
-import type { OpenAIAdapter } from '../../adapters/openai'
+import type { LLMProvider } from '../../adapters/llm/types'
 import type { WorkFlowNode } from '../../types/workflow'
 import type { AgentConfig } from '../../types/agents'
 
@@ -13,7 +13,7 @@ Return ONLY the JSON object, no markdown.`
  * @returns Agent config from LLM, or a fallback config derived from the node on parse failure
  */
 export async function generateAgentConfig(
-	adapter: OpenAIAdapter,
+	provider: LLMProvider,
 	node: WorkFlowNode,
 ): Promise<AgentConfig> {
 	const prompt = `Generate an agent config for this task:
@@ -22,7 +22,7 @@ Description: ${node.description}
 Inputs: ${node.inputs.map(i => i.name).join(', ')}
 Outputs: ${node.outputs.map(o => o.name).join(', ')}`
 
-	const response = await adapter.generateContent(prompt, SYSTEM_PROMPT)
+	const response = await provider.generateText(prompt, { systemPrompt: SYSTEM_PROMPT })
 
 	try {
 		const parsed = JSON.parse(response) as {

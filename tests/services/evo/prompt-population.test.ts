@@ -6,12 +6,14 @@ import {
 	selectParents,
 	createScoredPrompt,
 } from '../../../src/services/evo/prompt-population'
-import type { OpenAIAdapter } from '../../../src/adapters/openai'
+import type { LLMProvider } from '../../../src/adapters/llm/types'
 
-function mockAdapter(response: string): OpenAIAdapter {
+function mockProvider(response: string): LLMProvider {
 	return {
-		analyzeSentiment: vi.fn(),
-		generateContent: vi.fn().mockResolvedValue(response),
+		name: 'mock',
+		capabilities: new Set(['text', 'json']),
+		generateText: vi.fn().mockResolvedValue(response),
+		generateJSON: vi.fn(),
 	}
 }
 
@@ -36,16 +38,16 @@ describe('selectParents', () => {
 
 describe('crossoverPrompts', () => {
 	it('combines two parent prompts via LLM', async () => {
-		const adapter = mockAdapter('A hybrid prompt combining audience focus with urgency.')
-		const child = await crossoverPrompts(adapter, 'Focus on audience needs.', 'Use urgency in messaging.')
+		const provider = mockProvider('A hybrid prompt combining audience focus with urgency.')
+		const child = await crossoverPrompts(provider, 'Focus on audience needs.', 'Use urgency in messaging.')
 		expect(child).toContain('hybrid')
 	})
 })
 
 describe('mutatePrompt', () => {
 	it('mutates a prompt via LLM', async () => {
-		const adapter = mockAdapter('Focus on audience needs with emotional hooks and social proof.')
-		const mutated = await mutatePrompt(adapter, 'Focus on audience needs.')
+		const provider = mockProvider('Focus on audience needs with emotional hooks and social proof.')
+		const mutated = await mutatePrompt(provider, 'Focus on audience needs.')
 		expect(mutated).toContain('emotional')
 	})
 })
@@ -60,8 +62,8 @@ describe('createScoredPrompt', () => {
 
 describe('deMutatePrompt', () => {
 	it('applies DE-inspired mutation via LLM', async () => {
-		const adapter = mockAdapter('Target prompt enhanced with innovations from donor differences.')
-		const result = await deMutatePrompt(adapter, {
+		const provider = mockProvider('Target prompt enhanced with innovations from donor differences.')
+		const result = await deMutatePrompt(provider, {
 			target: 'Basic prompt.',
 			donor1: 'Prompt with feature A.',
 			donor2: 'Prompt without feature A.',
