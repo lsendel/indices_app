@@ -19,7 +19,13 @@ export async function enrichArticles(adapter: OpenAIAdapter, articles: ArticleFo
 		try {
 			const sentiment = await adapter.analyzeSentiment(article.content, article.brand)
 			results.push({ articleId: article.id, sentiment })
-		} catch { /* skip failures */ }
+		} catch (e) {
+			console.warn('enrichArticles: failed to enrich article', {
+				articleId: article.id,
+				brand: article.brand,
+				error: e instanceof Error ? e.message : String(e),
+			})
+		}
 	}
 	return results
 }

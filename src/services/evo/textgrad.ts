@@ -21,6 +21,8 @@ export interface GradientResult {
 	suggestedPrompt: string
 }
 
+export const GRADIENT_FAILURE = 'Unable to compute gradient' as const
+
 export interface ApplyGradientInput {
 	currentPrompt: string
 	gradient: string
@@ -79,13 +81,13 @@ Suggest specific improvements.`
 		const parsed = JSON.parse(response) as Record<string, unknown>
 		if (typeof parsed.gradient !== 'string' || typeof parsed.suggestedPrompt !== 'string') {
 			console.warn('computeGradient: LLM response has unexpected shape', { prompt: input.prompt.slice(0, 200), receivedKeys: Object.keys(parsed) })
-			return { gradient: 'Unable to compute gradient', suggestedPrompt: input.prompt }
+			return { gradient: GRADIENT_FAILURE, suggestedPrompt: input.prompt }
 		}
 		return { gradient: parsed.gradient, suggestedPrompt: parsed.suggestedPrompt }
 	} catch (e) {
 		if (!(e instanceof SyntaxError)) throw e
 		console.warn('computeGradient: failed to parse LLM response', { error: e.message })
-		return { gradient: 'Unable to compute gradient', suggestedPrompt: input.prompt }
+		return { gradient: GRADIENT_FAILURE, suggestedPrompt: input.prompt }
 	}
 }
 

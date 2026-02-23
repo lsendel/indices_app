@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { computeLoss, computeGradient, applyGradient } from '../../../src/services/evo/textgrad'
+import { computeLoss, computeGradient, applyGradient, GRADIENT_FAILURE } from '../../../src/services/evo/textgrad'
 import type { OpenAIAdapter } from '../../../src/adapters/openai'
 
 function mockAdapter(response: string): OpenAIAdapter {
@@ -53,7 +53,7 @@ describe('computeGradient', () => {
 			prompt: 'Write a marketing email.',
 			lossAnalysis: 'Too generic.',
 		})
-		expect(result.gradient).toBe('Unable to compute gradient')
+		expect(result.gradient).toBe(GRADIENT_FAILURE)
 		expect(result.suggestedPrompt).toBe('Write a marketing email.')
 	})
 

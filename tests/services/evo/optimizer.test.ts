@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { runOptimizationCycle } from '../../../src/services/evo/optimizer'
+import { GRADIENT_FAILURE } from '../../../src/services/evo/textgrad'
 import type { OpenAIAdapter } from '../../../src/adapters/openai'
 
 function mockAdapter(): OpenAIAdapter {
@@ -96,7 +97,7 @@ describe('runOptimizationCycle', () => {
 		})
 
 		expect(result.textgradPrompt).toBe('Original prompt.')
-		expect(result.gradient).toBe('Unable to compute gradient')
+		expect(result.gradient).toBe(GRADIENT_FAILURE)
 		expect(adapter.generateContent).toHaveBeenCalledTimes(2)
 	})
 

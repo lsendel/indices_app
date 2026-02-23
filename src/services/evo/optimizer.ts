@@ -1,5 +1,5 @@
 import type { OpenAIAdapter } from '../../adapters/openai'
-import { computeLoss, computeGradient, applyGradient } from './textgrad'
+import { computeLoss, computeGradient, applyGradient, GRADIENT_FAILURE } from './textgrad'
 import { selectParents, crossoverPrompts, mutatePrompt, deMutatePrompt } from './prompt-population'
 import type { ScoredPrompt } from './prompt-population'
 
@@ -52,7 +52,7 @@ export async function runOptimizationCycle(
 		})
 		gradient = gradientResult.gradient
 
-		if (gradient === 'Unable to compute gradient') {
+		if (gradient === GRADIENT_FAILURE) {
 			textgradPrompt = input.currentPrompt
 		} else {
 			textgradPrompt = await applyGradient(adapter, {
