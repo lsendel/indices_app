@@ -1,5 +1,26 @@
 import { z } from 'zod'
 
+// Re-export response/entity types from the shared contract.
+// Validation schemas below are kept locally because they contain
+// backend-specific enum values and defaults that differ from the
+// contract's frontend-facing definitions.
+export type {
+	Account, Deal,
+	Prospect,
+	Campaign,
+	Segment,
+	Experiment, ExperimentArm,
+	Workflow, WorkflowNode, WorkflowEdge,
+	EvolutionCycle, HitlRequest,
+	SentimentArticle, DriftEvent, CompetitiveEntry,
+	BrandKit, AuditResult,
+	FeedSubscription,
+	ScrapeJob,
+	Persona,
+	ZelutoConfig, SyncLog, SyncResult,
+	DashboardData,
+} from '@indices/contract'
+
 // Prospects
 export const prospectCreate = z.object({
 	name: z.string().min(1).max(100),
