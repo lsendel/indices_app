@@ -24,6 +24,17 @@ describe('computeLoss', () => {
 		expect(result.analysis).toContain('generic')
 	})
 
+	it('returns high loss when LLM response has wrong shape', async () => {
+		const adapter = mockAdapter(JSON.stringify({ foo: 'bar' }))
+		const result = await computeLoss(adapter, {
+			prompt: 'test',
+			output: 'test',
+			goal: 'test',
+		})
+		expect(result.loss).toBe(1)
+		expect(result.analysis).toBe('Failed to evaluate output')
+	})
+
 	it('returns high loss on LLM failure', async () => {
 		const adapter = mockAdapter('bad json')
 		const result = await computeLoss(adapter, {

@@ -29,14 +29,15 @@ export function createOpenAIAdapter(): OpenAIAdapter {
 				max_tokens: 200,
 			})
 
-			const content = response.choices[0]?.message?.content ?? '{}'
-			try {
-				return JSON.parse(content) as { score: number; themes: string[] }
-			} catch (e) {
-				if (!(e instanceof SyntaxError)) throw e
-				console.warn('analyzeSentiment: failed to parse OpenAI response', { brand, error: e.message })
-				return { score: 0, themes: [] }
+			const content = response.choices[0]?.message?.content
+			if (!content) {
+				throw new Error(`analyzeSentiment: OpenAI returned empty content for brand "${brand}"`)
 			}
+			const parsed = JSON.parse(content) as Record<string, unknown>
+			if (typeof parsed.score !== 'number' || !Array.isArray(parsed.themes)) {
+				throw new Error(`analyzeSentiment: unexpected response shape for brand "${brand}"`)
+			}
+			return { score: parsed.score, themes: parsed.themes as string[] }
 		},
 
 		async generateContent(prompt: string, systemPrompt?: string) {

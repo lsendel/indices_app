@@ -42,7 +42,11 @@ Rate the quality (0=perfect match to goal, 1=completely wrong).`
 
 	try {
 		const response = await adapter.generateContent(prompt, systemPrompt)
-		const parsed = JSON.parse(response) as { loss: number; analysis: string }
+		const parsed = JSON.parse(response) as Record<string, unknown>
+		if (typeof parsed.loss !== 'number' || typeof parsed.analysis !== 'string') {
+			console.warn('computeLoss: LLM response has unexpected shape', { goal: input.goal, receivedKeys: Object.keys(parsed) })
+			return { loss: 1, analysis: 'Failed to evaluate output' }
+		}
 		return {
 			loss: Math.max(0, Math.min(1, parsed.loss)),
 			analysis: parsed.analysis,
@@ -74,6 +78,7 @@ Suggest specific improvements.`
 		const response = await adapter.generateContent(prompt, systemPrompt)
 		const parsed = JSON.parse(response) as Record<string, unknown>
 		if (typeof parsed.gradient !== 'string' || typeof parsed.suggestedPrompt !== 'string') {
+			console.warn('computeGradient: LLM response has unexpected shape', { prompt: input.prompt.slice(0, 200), receivedKeys: Object.keys(parsed) })
 			return { gradient: 'Unable to compute gradient', suggestedPrompt: input.prompt }
 		}
 		return { gradient: parsed.gradient, suggestedPrompt: parsed.suggestedPrompt }

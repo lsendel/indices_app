@@ -77,6 +77,29 @@ describe('runOptimizationCycle', () => {
 		expect(result.gaChildren).toEqual(['DE-evolved prompt.'])
 	})
 
+	it('skips applyGradient when computeGradient fails', async () => {
+		const adapter: OpenAIAdapter = {
+			analyzeSentiment: vi.fn(),
+			generateContent: vi.fn()
+				// computeLoss response
+				.mockResolvedValueOnce(JSON.stringify({ loss: 0.8, analysis: 'Poor quality' }))
+				// computeGradient returns wrong shape → fallback
+				.mockResolvedValueOnce(JSON.stringify({ wrong: 'shape' })),
+		}
+
+		const result = await runOptimizationCycle(adapter, {
+			currentPrompt: 'Original prompt.',
+			output: 'Bad output.',
+			goal: 'Good output.',
+			population: [],
+			strategy: 'textgrad',
+		})
+
+		expect(result.textgradPrompt).toBe('Original prompt.')
+		expect(result.gradient).toBe('Unable to compute gradient')
+		expect(adapter.generateContent).toHaveBeenCalledTimes(2)
+	})
+
 	it('skips DE when population < 3', async () => {
 		const adapter: OpenAIAdapter = {
 			analyzeSentiment: vi.fn(),

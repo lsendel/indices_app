@@ -52,10 +52,14 @@ export async function runOptimizationCycle(
 		})
 		gradient = gradientResult.gradient
 
-		textgradPrompt = await applyGradient(adapter, {
-			currentPrompt: input.currentPrompt,
-			gradient: gradientResult.gradient,
-		})
+		if (gradient === 'Unable to compute gradient') {
+			textgradPrompt = input.currentPrompt
+		} else {
+			textgradPrompt = await applyGradient(adapter, {
+				currentPrompt: input.currentPrompt,
+				gradient: gradientResult.gradient,
+			})
+		}
 	}
 
 	// GA phase
