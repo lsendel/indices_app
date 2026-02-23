@@ -84,6 +84,19 @@ describe('Rule Engine', () => {
 		expect(result.matched).toHaveLength(1)
 	})
 
+	it('should resolve in_group using the field parameter, not hardcoded channel', () => {
+		const rule: Rule = {
+			id: 'r1', name: 'test', priority: 10, cooldownMinutes: 0,
+			conditions: [{ field: 'platform', op: 'in_group', value: 'social' }],
+			actions: [{ type: 'notify', message: 'in group' }],
+			scope: {},
+		}
+		const payload = { channel: 'email', platform: 'instagram' }
+		const context = { groups: { social: ['instagram', 'tiktok', 'facebook'] } }
+		const result = evaluateRules([rule], payload, context)
+		expect(result.matched).toHaveLength(1)
+	})
+
 	it('should skip rules still in cooldown', () => {
 		const rule: Rule = {
 			id: 'r1', name: 'throttled', priority: 10, cooldownMinutes: 60,

@@ -21,6 +21,19 @@ export function createEventBus(options?: EventBusOptions): EventBus {
 	const handlers = new Map<EventType, EventHandler[]>()
 	const wildcardHandlers: EventHandler[] = []
 	const eventLog: LoopEvent[] = []
+	const tenantIndex = new Map<string, LoopEvent[]>()
+
+	function trimLog() {
+		if (eventLog.length <= maxLog) return
+		const removed = eventLog.splice(0, eventLog.length - maxLog)
+		for (const event of removed) {
+			const tenantEvents = tenantIndex.get(event.tenantId)
+			if (tenantEvents) {
+				tenantEvents.shift()
+				if (tenantEvents.length === 0) tenantIndex.delete(event.tenantId)
+			}
+		}
+	}
 
 	return {
 		async emit(tenantId, type, payload) {
@@ -32,9 +45,13 @@ export function createEventBus(options?: EventBusOptions): EventBus {
 				timestamp: new Date(),
 			}
 			eventLog.push(event)
-			if (eventLog.length > maxLog) {
-				eventLog.splice(0, eventLog.length - maxLog)
+			const tenantEvents = tenantIndex.get(tenantId)
+			if (tenantEvents) {
+				tenantEvents.push(event)
+			} else {
+				tenantIndex.set(tenantId, [event])
 			}
+			trimLog()
 
 			const typedHandlers = handlers.get(type) ?? []
 			const allHandlers = [...typedHandlers, ...wildcardHandlers]
@@ -70,9 +87,9 @@ export function createEventBus(options?: EventBusOptions): EventBus {
 		},
 
 		history(tenantId, type?) {
-			return eventLog.filter(
-				(e) => e.tenantId === tenantId && (!type || e.type === type),
-			)
+			const tenantEvents = tenantIndex.get(tenantId) ?? []
+			if (!type) return [...tenantEvents]
+			return tenantEvents.filter((e) => e.type === type)
 		},
 	}
 }

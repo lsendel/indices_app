@@ -12,38 +12,43 @@ describe('loop routes', () => {
 		app.route('/loops', createLoopRoutes())
 	})
 
-	it('GET /pipelines should return pipelines', async () => {
+	it('GET /pipelines should return stub pipelines', async () => {
 		const res = await app.request('/loops/pipelines')
 		expect(res.status).toBe(200)
 		const body = await res.json()
 		expect(body.pipelines).toBeInstanceOf(Array)
+		expect(body.status).toBe('stub')
 	})
 
-	it('GET /rules should return rules', async () => {
+	it('GET /rules should return stub rules', async () => {
 		const res = await app.request('/loops/rules')
 		expect(res.status).toBe(200)
 		const body = await res.json()
 		expect(body.rules).toBeInstanceOf(Array)
+		expect(body.status).toBe('stub')
 	})
 
-	it('GET /groups should return channel groups', async () => {
+	it('GET /groups should return channel groups (live)', async () => {
 		const res = await app.request('/loops/groups')
 		expect(res.status).toBe(200)
 		const body = await res.json()
 		expect(body.groups).toBeInstanceOf(Array)
+		expect(body.status).toBeUndefined()
 	})
 
-	it('GET /events should return event history', async () => {
+	it('GET /events should return stub event history', async () => {
 		const res = await app.request('/loops/events')
 		expect(res.status).toBe(200)
 		const body = await res.json()
 		expect(body.events).toBeInstanceOf(Array)
+		expect(body.status).toBe('stub')
 	})
 
-	it('GET /lineage/:channel should return prompt lineage', async () => {
+	it('GET /lineage/:channel should return stub prompt lineage', async () => {
 		const res = await app.request('/loops/lineage/email')
 		expect(res.status).toBe(200)
 		const body = await res.json()
 		expect(body.versions).toBeInstanceOf(Array)
+		expect(body.status).toBe('stub')
 	})
 })

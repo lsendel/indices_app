@@ -6,11 +6,11 @@ export function createLoopRoutes() {
 	const router = new Hono<AppEnv>()
 
 	router.get('/pipelines', async (c) => {
-		return c.json({ pipelines: [] })
+		return c.json({ pipelines: [], status: 'stub' })
 	})
 
 	router.get('/rules', async (c) => {
-		return c.json({ rules: [] })
+		return c.json({ rules: [], status: 'stub' })
 	})
 
 	router.get('/groups', (c) => {
@@ -19,11 +19,11 @@ export function createLoopRoutes() {
 	})
 
 	router.get('/events', async (c) => {
-		return c.json({ events: [] })
+		return c.json({ events: [], status: 'stub' })
 	})
 
 	router.get('/lineage/:channel', async (c) => {
-		return c.json({ versions: [] })
+		return c.json({ versions: [], status: 'stub' })
 	})
 
 	return router

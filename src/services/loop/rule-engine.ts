@@ -54,17 +54,17 @@ function evaluateCondition(condition: Condition, payload: Record<string, unknown
 	const { field, op, value } = condition
 
 	if (op === 'in_group') {
-		const channel = payload.channel as string
+		const resolved = resolveField(field, payload, context) as string
 		const groups = context.groups ?? {}
 		const members = groups[value as string] ?? []
-		return members.includes(channel)
+		return members.includes(resolved)
 	}
 
 	if (op === 'not_in_group') {
-		const channel = payload.channel as string
+		const resolved = resolveField(field, payload, context) as string
 		const groups = context.groups ?? {}
 		const members = groups[value as string] ?? []
-		return !members.includes(channel)
+		return !members.includes(resolved)
 	}
 
 	const resolved = resolveField(field, payload, context)
