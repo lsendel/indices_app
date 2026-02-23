@@ -8,6 +8,13 @@
       "when": 1771774713927,
       "tag": "0000_chubby_leech",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1771806769190,
+      "tag": "0001_lumpy_mongu",
+      "breakpoints": true
     }
   ]
 }
