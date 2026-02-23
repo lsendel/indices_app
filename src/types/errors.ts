@@ -38,3 +38,13 @@ export class ValidationError extends AppError {
 		super(422, message, 'VALIDATION_ERROR')
 	}
 }
+
+export class ZelutoApiError extends AppError {
+	constructor(
+		public readonly zelutoCode: string,
+		message: string,
+		statusCode: number = 502,
+	) {
+		super(statusCode, message, 'ZELUTO_API_ERROR')
+	}
+}

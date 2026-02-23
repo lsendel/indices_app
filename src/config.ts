@@ -16,6 +16,8 @@ export const configSchema = z.object({
 	SCRAPER_SHARED_SECRET: z.string().default('dev-secret'),
 	ZELUTO_API_URL: z.string().url().default('https://zeluto.com/api/v1'),
 	ZELUTO_TENANT_CONTEXT: z.string().optional(),
+	ZELUTO_API_KEY: z.string().optional(),
+	ZELUTO_WEBHOOK_SECRET: z.string().default('dev-webhook-secret'),
 	CORS_ORIGINS: z.string().default('http://localhost:3000'),
 	REDIS_URL: z.string().optional(),
 })

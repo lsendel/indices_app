@@ -12,8 +12,20 @@ import { createSentimentRoutes } from './social-sentiment'
 import { createExperimentRoutes } from './experiments'
 import { createPersonaRoutes } from './personas'
 import { createBrandAuditRoutes } from './brand-audit'
+import { createZelutoWebhookRoutes } from './zeluto-webhook'
+import { createZelutoRoutes } from './zeluto'
+import { createWorkflowRoutes } from './workflows'
+import { createEvolutionRoutes } from './evolution'
+import { createScraperRoutes } from './scraper'
+import { createFeedRoutes } from './feeds'
+import { createMcpRoutes } from './mcp'
+import { createSseRoutes } from './sse'
+import { createAnalyticsRoutes } from './analytics'
 
 export function registerRoutes(app: Hono<AppEnv>) {
+	// Webhook routes (HMAC-authenticated, no user session)
+	app.route('/webhooks/zeluto', createZelutoWebhookRoutes())
+
 	// Protected API routes
 	app.use('/api/v1/*', authMiddleware())
 	app.route('/api/v1/prospects', createProspectRoutes())
@@ -27,4 +39,12 @@ export function registerRoutes(app: Hono<AppEnv>) {
 	app.route('/api/v1/experiments', createExperimentRoutes())
 	app.route('/api/v1/personas', createPersonaRoutes())
 	app.route('/api/v1/brand-kits', createBrandAuditRoutes())
+	app.route('/api/v1/zeluto', createZelutoRoutes())
+	app.route('/api/v1/workflows', createWorkflowRoutes())
+	app.route('/api/v1/evolution', createEvolutionRoutes())
+	app.route('/api/v1/scraper', createScraperRoutes())
+	app.route('/api/v1/feeds', createFeedRoutes())
+	app.route('/api/v1/mcp', createMcpRoutes())
+	app.route('/api/v1/sse', createSseRoutes())
+	app.route('/api/v1/analytics', createAnalyticsRoutes())
 }

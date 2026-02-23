@@ -1,6 +1,7 @@
 import { Hono } from 'hono'
 import type { AppEnv } from '../app'
 import { verifySignature } from '../services/scraper/dispatcher'
+import { processBatch, type BatchPayload } from '../services/scraper/batch-handler'
 
 export function createIngestRoutes() {
 	const router = new Hono<AppEnv>()
@@ -24,17 +25,11 @@ export function createIngestRoutes() {
 			return c.json({ error: 'Invalid signature' }, 401)
 		}
 
-		const batch = JSON.parse(body) as {
-			job_id: string
-			batch_index: number
-			is_final: boolean
-			pages?: unknown[]
-			posts?: unknown[]
-		}
+		const payload = JSON.parse(body) as BatchPayload & { tenant_id?: string }
+		const tenantId = payload.tenant_id ?? c.get('tenantId') ?? ''
+		const result = await processBatch(payload, tenantId)
 
-		console.log('Received scraper batch', { jobId: batch.job_id, batchIndex: batch.batch_index, isFinal: batch.is_final })
-
-		return c.json({ received: true, jobId: batch.job_id, batchIndex: batch.batch_index })
+		return c.json(result)
 	})
 
 	return router
