@@ -22,6 +22,7 @@ export interface GradientResult {
 }
 
 export const GRADIENT_FAILURE = 'Unable to compute gradient' as const
+export const LOSS_FAILURE = 'Failed to evaluate output' as const
 
 export interface ApplyGradientInput {
 	currentPrompt: string
@@ -47,7 +48,7 @@ Rate the quality (0=perfect match to goal, 1=completely wrong).`
 		const parsed = JSON.parse(response) as Record<string, unknown>
 		if (typeof parsed.loss !== 'number' || typeof parsed.analysis !== 'string') {
 			console.warn('computeLoss: LLM response has unexpected shape', { goal: input.goal, receivedKeys: Object.keys(parsed) })
-			return { loss: 1, analysis: 'Failed to evaluate output' }
+			return { loss: 1, analysis: LOSS_FAILURE }
 		}
 		return {
 			loss: Math.max(0, Math.min(1, parsed.loss)),
@@ -56,7 +57,7 @@ Rate the quality (0=perfect match to goal, 1=completely wrong).`
 	} catch (e) {
 		if (!(e instanceof SyntaxError)) throw e
 		console.warn('computeLoss: failed to parse LLM response', { goal: input.goal, error: e.message })
-		return { loss: 1, analysis: 'Failed to evaluate output' }
+		return { loss: 1, analysis: LOSS_FAILURE }
 	}
 }
 

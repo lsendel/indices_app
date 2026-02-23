@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { computeLoss, computeGradient, applyGradient, GRADIENT_FAILURE } from '../../../src/services/evo/textgrad'
+import { computeLoss, computeGradient, applyGradient, GRADIENT_FAILURE, LOSS_FAILURE } from '../../../src/services/evo/textgrad'
 import type { OpenAIAdapter } from '../../../src/adapters/openai'
 
 function mockAdapter(response: string): OpenAIAdapter {
@@ -32,7 +32,7 @@ describe('computeLoss', () => {
 			goal: 'test',
 		})
 		expect(result.loss).toBe(1)
-		expect(result.analysis).toBe('Failed to evaluate output')
+		expect(result.analysis).toBe(LOSS_FAILURE)
 	})
 
 	it('returns high loss on LLM failure', async () => {

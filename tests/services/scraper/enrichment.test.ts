@@ -16,12 +16,28 @@ describe('enrichArticles', () => {
 		expect(results[0].sentiment.score).toBe(0.7)
 	})
 
-	it('skips articles where analysis fails', async () => {
+	it('throws when all articles fail enrichment', async () => {
 		const adapter: OpenAIAdapter = {
 			analyzeSentiment: vi.fn().mockRejectedValue(new Error('LLM error')),
 			generateContent: vi.fn(),
 		}
-		const results = await enrichArticles(adapter, [{ id: 'a1', title: 'Test', content: 'Content', brand: 'B' }])
-		expect(results).toHaveLength(0)
+		await expect(
+			enrichArticles(adapter, [{ id: 'a1', title: 'Test', content: 'Content', brand: 'B' }]),
+		).rejects.toThrow('all 1 articles failed enrichment')
+	})
+
+	it('returns partial results when some articles fail', async () => {
+		const adapter: OpenAIAdapter = {
+			analyzeSentiment: vi.fn()
+				.mockResolvedValueOnce({ score: 0.5, themes: ['tech'] })
+				.mockRejectedValueOnce(new Error('LLM error')),
+			generateContent: vi.fn(),
+		}
+		const results = await enrichArticles(adapter, [
+			{ id: 'a1', title: 'Good', content: 'Works fine.', brand: 'B' },
+			{ id: 'a2', title: 'Bad', content: 'Fails here.', brand: 'B' },
+		])
+		expect(results).toHaveLength(1)
+		expect(results[0].articleId).toBe('a1')
 	})
 })
