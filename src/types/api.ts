@@ -170,3 +170,39 @@ export const experimentSyncRequest = z.object({
 	zelutoCampaignId: z.number().int().positive(),
 	winningCriteria: z.enum(['opens', 'clicks', 'conversions']).default('clicks'),
 })
+
+// Workflows (Phase 4)
+export const workflowCreate = z.object({
+	goal: z.string().min(1).max(500),
+	campaignId: z.string().uuid().optional(),
+	metadata: z.record(z.string(), z.any()).optional(),
+})
+
+export type WorkflowCreate = z.infer<typeof workflowCreate>
+
+// HITL
+export const hitlDecision = z.object({
+	decision: z.enum(['approved', 'rejected', 'modified']),
+	modifications: z.record(z.string(), z.any()).optional(),
+})
+
+export type HitlDecision = z.infer<typeof hitlDecision>
+
+// Evolution
+export const evolutionStart = z.object({
+	agentConfigId: z.string().uuid(),
+	strategy: z.enum(['textgrad', 'ga', 'de', 'hybrid']).default('hybrid'),
+	populationSize: z.number().int().min(2).max(20).default(5),
+	generations: z.number().int().min(1).max(50).default(10),
+})
+
+export type EvolutionStart = z.infer<typeof evolutionStart>
+
+// Prompt versions
+export const promptVersionCreate = z.object({
+	agentConfigId: z.string().uuid(),
+	systemPrompt: z.string().min(1),
+	instructionPrompt: z.string().min(1),
+})
+
+export type PromptVersionCreate = z.infer<typeof promptVersionCreate>
