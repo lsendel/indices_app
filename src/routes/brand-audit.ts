@@ -3,7 +3,6 @@ import { validate } from '../middleware/validate'
 import { eq, and, desc } from 'drizzle-orm'
 import type { AppEnv } from '../app'
 import { brandKits } from '../db/schema'
-import { getDb } from '../db/client'
 import { brandKitCreate } from '../types/api'
 import { NotFoundError } from '../types/errors'
 
@@ -12,7 +11,7 @@ export function createBrandAuditRoutes() {
 
 	// List brand kits
 	router.get('/', async (c) => {
-		const db = getDb()
+		const db = c.var.db
 		const tenantId = c.get('tenantId')!
 
 		const items = await db
@@ -26,7 +25,7 @@ export function createBrandAuditRoutes() {
 
 	// Create brand kit
 	router.post('/', validate('json', brandKitCreate), async (c) => {
-		const db = getDb()
+		const db = c.var.db
 		const tenantId = c.get('tenantId')!
 		const data = c.req.valid('json')
 
@@ -36,7 +35,7 @@ export function createBrandAuditRoutes() {
 
 	// Get brand kit detail
 	router.get('/:id', async (c) => {
-		const db = getDb()
+		const db = c.var.db
 		const tenantId = c.get('tenantId')!
 		const id = c.req.param('id')
 
@@ -52,7 +51,7 @@ export function createBrandAuditRoutes() {
 	// Audit content against brand kit (placeholder for LLM call)
 	router.post('/:id/audit', async (c) => {
 		const id = c.req.param('id')
-		const db = getDb()
+		const db = c.var.db
 		const tenantId = c.get('tenantId')!
 
 		const [kit] = await db

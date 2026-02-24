@@ -21,21 +21,19 @@ const mockDb = {
 	}),
 }
 
-vi.mock('../../../src/db/client', () => ({ getDb: () => mockDb }))
-
 describe('job tracker', () => {
 	it('creates a scrape job', async () => {
-		const job = await createJob('t1', { jobType: 'web_crawl', seedUrls: ['https://example.com'] }, 'https://cb.example.com')
+		const job = await createJob(mockDb as any, 't1', { jobType: 'web_crawl', seedUrls: ['https://example.com'] }, 'https://cb.example.com')
 		expect(job.status).toBe('pending')
 	})
 
 	it('gets job status', async () => {
-		const job = await getJobStatus('job-1', 't1')
+		const job = await getJobStatus(mockDb as any, 'job-1', 't1')
 		expect(job?.status).toBe('running')
 	})
 
 	it('cancels a job', async () => {
-		const result = await cancelJob('job-1', 't1')
+		const result = await cancelJob(mockDb as any, 'job-1', 't1')
 		expect(result?.status).toBe('cancelled')
 	})
 })

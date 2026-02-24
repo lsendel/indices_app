@@ -3,7 +3,6 @@ import { validate } from '../middleware/validate'
 import { and, eq, sql } from 'drizzle-orm'
 import type { AppEnv } from '../app'
 import { prospects } from '../db/schema'
-import { getDb } from '../db/client'
 import { prospectCreate, prospectUpdate, paginationQuery } from '../types/api'
 import { NotFoundError, ConflictError } from '../types/errors'
 
@@ -13,7 +12,7 @@ export function createProspectRoutes() {
 	// List prospects
 	router.get('/', async (c) => {
 		const { page, limit } = paginationQuery.parse(c.req.query())
-		const db = getDb()
+		const db = c.var.db
 		const tenantId = c.get('tenantId')!
 		const offset = (page - 1) * limit
 
@@ -32,7 +31,7 @@ export function createProspectRoutes() {
 
 	// Get prospect by ID
 	router.get('/:id', async (c) => {
-		const db = getDb()
+		const db = c.var.db
 		const tenantId = c.get('tenantId')!
 		const id = c.req.param('id')
 		const [prospect] = await db.select().from(prospects).where(and(eq(prospects.id, id), eq(prospects.tenantId, tenantId)))
@@ -42,7 +41,7 @@ export function createProspectRoutes() {
 
 	// Create prospect
 	router.post('/', validate('json', prospectCreate), async (c) => {
-		const db = getDb()
+		const db = c.var.db
 		const tenantId = c.get('tenantId')!
 		const data = c.req.valid('json')
 
@@ -57,7 +56,7 @@ export function createProspectRoutes() {
 
 	// Update prospect
 	router.patch('/:id', validate('json', prospectUpdate), async (c) => {
-		const db = getDb()
+		const db = c.var.db
 		const tenantId = c.get('tenantId')!
 		const id = c.req.param('id')
 		const data = c.req.valid('json')
@@ -73,7 +72,7 @@ export function createProspectRoutes() {
 
 	// Delete prospect
 	router.delete('/:id', async (c) => {
-		const db = getDb()
+		const db = c.var.db
 		const tenantId = c.get('tenantId')!
 		const id = c.req.param('id')
 		const [deleted] = await db.delete(prospects).where(and(eq(prospects.id, id), eq(prospects.tenantId, tenantId))).returning()

@@ -3,45 +3,43 @@ import { Hono } from 'hono'
 import type { AppEnv } from '../../src/app'
 import { createEvolutionRoutes } from '../../src/routes/evolution'
 
-vi.mock('../../src/db/client', () => ({
-	getDb: vi.fn().mockReturnValue({
-		select: vi.fn().mockImplementation((fields?: Record<string, unknown>) => ({
-			from: vi.fn().mockReturnValue({
-				where: vi.fn().mockReturnValue({
-					orderBy: vi.fn().mockReturnValue({
-						limit: vi.fn().mockReturnValue({
-							offset: vi.fn().mockResolvedValue([
-								{ id: 'ec-1', tenantId: 't1', generation: 1, strategy: 'hybrid', status: 'completed' },
-							]),
-						}),
+const mockDb = {
+	select: vi.fn().mockImplementation((fields?: Record<string, unknown>) => ({
+		from: vi.fn().mockReturnValue({
+			where: vi.fn().mockReturnValue({
+				orderBy: vi.fn().mockReturnValue({
+					limit: vi.fn().mockReturnValue({
+						offset: vi.fn().mockResolvedValue([
+							{ id: 'ec-1', tenantId: 't1', generation: 1, strategy: 'hybrid', status: 'completed' },
+						]),
 					}),
 				}),
 			}),
-		})),
-		insert: vi.fn().mockReturnValue({
-			values: vi.fn().mockReturnValue({
+		}),
+	})),
+	insert: vi.fn().mockReturnValue({
+		values: vi.fn().mockReturnValue({
+			returning: vi.fn().mockResolvedValue([{
+				id: 'ec-new',
+				tenantId: 't1',
+				generation: 1,
+				strategy: 'ga',
+				status: 'pending',
+			}]),
+		}),
+	}),
+	update: vi.fn().mockReturnValue({
+		set: vi.fn().mockReturnValue({
+			where: vi.fn().mockReturnValue({
 				returning: vi.fn().mockResolvedValue([{
-					id: 'ec-new',
-					tenantId: 't1',
-					generation: 1,
-					strategy: 'ga',
-					status: 'pending',
+					id: 'hitl-1',
+					decision: 'approved',
+					decidedBy: 'u1',
 				}]),
 			}),
 		}),
-		update: vi.fn().mockReturnValue({
-			set: vi.fn().mockReturnValue({
-				where: vi.fn().mockReturnValue({
-					returning: vi.fn().mockResolvedValue([{
-						id: 'hitl-1',
-						decision: 'approved',
-						decidedBy: 'u1',
-					}]),
-				}),
-			}),
-		}),
 	}),
-}))
+}
 
 describe('evolution routes', () => {
 	let app: Hono<AppEnv>
@@ -51,6 +49,7 @@ describe('evolution routes', () => {
 		app.use('*', async (c, next) => {
 			c.set('tenantId', 't1')
 			c.set('userId', 'u1')
+			c.set('db', mockDb as any)
 			await next()
 		})
 		app.route('/evolution', createEvolutionRoutes())

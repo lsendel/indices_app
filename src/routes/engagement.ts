@@ -2,14 +2,13 @@ import { Hono } from 'hono'
 import { eq, and, desc } from 'drizzle-orm'
 import type { AppEnv } from '../app'
 import { engagementEvents } from '../db/schema'
-import { getDb } from '../db/client'
 
 export function createEngagementRoutes() {
 	const router = new Hono<AppEnv>()
 
 	// Aggregate summary (must be before /:publishedContentId)
 	router.get('/summary', async (c) => {
-		const db = getDb()
+		const db = c.var.db
 		const tenantId = c.get('tenantId')!
 
 		const summary = await db
@@ -24,7 +23,7 @@ export function createEngagementRoutes() {
 
 	// Top performing content (must be before /:publishedContentId)
 	router.get('/leaderboard', async (c) => {
-		const db = getDb()
+		const db = c.var.db
 		const tenantId = c.get('tenantId')!
 
 		const leaderboard = await db
@@ -39,7 +38,7 @@ export function createEngagementRoutes() {
 
 	// Metrics for specific published content
 	router.get('/:publishedContentId', async (c) => {
-		const db = getDb()
+		const db = c.var.db
 		const tenantId = c.get('tenantId')!
 		const publishedContentId = c.req.param('publishedContentId')
 

@@ -2,14 +2,13 @@ import { Hono } from 'hono'
 import { eq, and, desc, gte, sql } from 'drizzle-orm'
 import type { AppEnv } from '../app'
 import { sentimentArticles, driftEvents } from '../db/schema'
-import { getDb } from '../db/client'
 
 export function createSentimentRoutes() {
 	const router = new Hono<AppEnv>()
 
 	// Get sentiment signals for a brand
 	router.get('/signals', async (c) => {
-		const db = getDb()
+		const db = c.var.db
 		const tenantId = c.get('tenantId')!
 		const brand = c.req.query('brand') ?? c.req.query('ticker') ?? ''
 		const window = c.req.query('window') ?? '24h'
@@ -35,7 +34,7 @@ export function createSentimentRoutes() {
 
 	// Get drift events for a brand
 	router.get('/drift', async (c) => {
-		const db = getDb()
+		const db = c.var.db
 		const tenantId = c.get('tenantId')!
 		const brand = c.req.query('brand') ?? ''
 		const limit = Number(c.req.query('limit') ?? 20)
@@ -52,7 +51,7 @@ export function createSentimentRoutes() {
 
 	// Get competitive summary
 	router.get('/competitive', async (c) => {
-		const db = getDb()
+		const db = c.var.db
 		const tenantId = c.get('tenantId')!
 		const window = c.req.query('window') ?? '7d'
 

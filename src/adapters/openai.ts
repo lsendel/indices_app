@@ -5,7 +5,6 @@
 import { z } from 'zod'
 import type { LLMProvider } from './llm/types'
 import { createOpenAIProvider } from './llm/openai'
-import { getConfig } from '../config'
 
 export type OpenAIAdapter = {
 	analyzeSentiment(text: string, brand: string): Promise<{ score: number; themes: string[] }>
@@ -13,8 +12,7 @@ export type OpenAIAdapter = {
 }
 
 /** @deprecated Use createLLMRouterFromConfig instead */
-export function createOpenAIAdapter(): OpenAIAdapter {
-	const config = getConfig()
+export function createOpenAIAdapter(config: { OPENAI_API_KEY?: string; OPENAI_MODEL?: string }): OpenAIAdapter {
 	if (!config.OPENAI_API_KEY) {
 		throw new Error('OpenAI API key not configured')
 	}

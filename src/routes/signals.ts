@@ -3,7 +3,6 @@ import { validate } from '../middleware/validate'
 import { eq, and, desc, gte } from 'drizzle-orm'
 import type { AppEnv } from '../app'
 import { signals, accountScores } from '../db/schema'
-import { getDb } from '../db/client'
 import { signalCapture } from '../types/api'
 
 export function createSignalRoutes() {
@@ -11,7 +10,7 @@ export function createSignalRoutes() {
 
 	// Capture a signal
 	router.post('/capture', validate('json', signalCapture), async (c) => {
-		const db = getDb()
+		const db = c.var.db
 		const tenantId = c.get('tenantId')!
 		const data = c.req.valid('json')
 
@@ -21,7 +20,7 @@ export function createSignalRoutes() {
 
 	// Get hot accounts (score above threshold)
 	router.get('/hot', async (c) => {
-		const db = getDb()
+		const db = c.var.db
 		const tenantId = c.get('tenantId')!
 		const threshold = Number(c.req.query('threshold') ?? 50)
 		const limit = Number(c.req.query('limit') ?? 50)
@@ -38,7 +37,7 @@ export function createSignalRoutes() {
 
 	// Get signals for an account
 	router.get('/accounts/:accountId', async (c) => {
-		const db = getDb()
+		const db = c.var.db
 		const tenantId = c.get('tenantId')!
 		const accountId = c.req.param('accountId')
 		const days = Number(c.req.query('days') ?? 90)

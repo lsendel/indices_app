@@ -1,13 +1,12 @@
 import { createApp } from './app'
-import { getConfig } from './config'
-import { logger } from './utils/logger'
 
-const config = getConfig()
 const app = createApp()
 
-logger.info({ port: config.PORT, env: config.ENVIRONMENT }, 'Starting com_mark_api')
+// CF Workers export (default) — also works as Bun's export default { fetch }
+export default app
 
-export default {
-	port: config.PORT,
-	fetch: app.fetch,
+// Bun-only: log startup info when running under Bun runtime
+if (typeof (globalThis as Record<string, unknown>).Bun !== 'undefined') {
+	const port = parseInt(process.env.PORT || '3001', 10)
+	console.log(`Starting indices-api on port ${port} (Bun)`)
 }

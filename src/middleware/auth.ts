@@ -1,6 +1,6 @@
 import type { MiddlewareHandler } from 'hono'
+import type { AppEnv } from '../app'
 import { UnauthorizedError } from '../types/errors'
-import { getDb } from '../db/client'
 import { tenants } from '../db/schema'
 
 export interface SessionUser {
@@ -11,9 +11,9 @@ export interface SessionUser {
 
 let _devTenantId: string | null = null
 
-export function authMiddleware(): MiddlewareHandler {
+export function authMiddleware(): MiddlewareHandler<AppEnv> {
   return async (c, next) => {
-    const env = process.env.ENVIRONMENT || 'development'
+    const env = c.env.ENVIRONMENT || 'development'
     if (env === 'development' || env === 'testing') {
       const devUser: SessionUser = { id: 'dev_user', email: 'dev@indices.app', name: 'Dev User' }
       c.set('userId', devUser.id)
@@ -21,7 +21,7 @@ export function authMiddleware(): MiddlewareHandler {
 
       if (!_devTenantId) {
         try {
-          const db = getDb()
+          const db = c.var.db
           const [tenant] = await db.select().from(tenants).limit(1)
           _devTenantId = tenant?.id ?? 'test-tenant-id'
         } catch {
@@ -46,7 +46,8 @@ export function authMiddleware(): MiddlewareHandler {
     }
 
     try {
-      const response = await fetch(`${process.env.BETTER_AUTH_URL}/api/auth/get-session`, {
+      const authUrl = c.env.BETTER_AUTH_URL || 'http://localhost:3001'
+      const response = await fetch(`${authUrl}/api/auth/get-session`, {
         headers: {
           cookie: sessionToken ? `better-auth.session_token=${sessionToken}` : '',
           authorization: bearerToken ? `Bearer ${bearerToken}` : '',

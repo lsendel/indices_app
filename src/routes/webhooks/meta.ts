@@ -1,19 +1,17 @@
 import { Hono } from 'hono'
-import { getConfig } from '../../config'
-import { getDb } from '../../db/client'
+import type { AppEnv } from '../../app'
 import { engagementEvents } from '../../db/schema'
 
 export function createMetaWebhookRoutes() {
-	const router = new Hono()
+	const router = new Hono<AppEnv>()
 
 	// Webhook verification (called once by Meta during setup)
 	router.get('/', (c) => {
-		const config = getConfig()
 		const mode = c.req.query('hub.mode')
 		const token = c.req.query('hub.verify_token')
 		const challenge = c.req.query('hub.challenge')
 
-		if (mode === 'subscribe' && token === config.META_APP_SECRET) {
+		if (mode === 'subscribe' && token === c.env.META_APP_SECRET) {
 			return c.text(challenge || '', 200)
 		}
 		return c.json({ error: 'Forbidden' }, 403)
@@ -22,7 +20,7 @@ export function createMetaWebhookRoutes() {
 	// Event processing
 	router.post('/', async (c) => {
 		const body = await c.req.json()
-		const db = getDb()
+		const db = c.var.db
 
 		for (const entry of body.entry || []) {
 			for (const change of entry.changes || []) {

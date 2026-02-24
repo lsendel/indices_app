@@ -1,5 +1,5 @@
 import { inArray, eq } from 'drizzle-orm'
-import { getDb } from '../../db/client'
+import type { Database } from '../../db/client'
 import { scrapedArticles, scrapedSocial, scrapeJobs } from '../../db/schema'
 import { normalizeBatchToArticles } from '../sentiment/ingestion'
 import { deduplicateArticles } from './dedup'
@@ -16,8 +16,7 @@ export interface BatchResult {
 	isFinal: boolean
 }
 
-export async function processBatch(batch: BatchPayload, tenantId: string): Promise<BatchResult> {
-	const db = getDb()
+export async function processBatch(db: Database, batch: BatchPayload, tenantId: string): Promise<BatchResult> {
 	const normalized = normalizeBatchToArticles(batch, tenantId)
 
 	if (normalized.length === 0) {
@@ -57,7 +56,7 @@ export async function processBatch(batch: BatchPayload, tenantId: string): Promi
 			await db.update(scrapeJobs).set({ status: 'completed', completedAt: new Date() }).where(eq(scrapeJobs.id, batch.job_id))
 		}
 	} catch (err) {
-		logger.error({ jobId: batch.job_id, batchIndex: batch.batch_index, error: err }, 'Failed to persist batch content')
+		logger.error('Failed to persist batch content', { jobId: batch.job_id, batchIndex: batch.batch_index, error: String(err) })
 		throw err
 	}
 

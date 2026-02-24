@@ -4,15 +4,23 @@ import { validate } from '../middleware/validate'
 import { contentGenerate, contentGenerateBatch } from '../types/api'
 import { channelConfig, SUPPORTED_CHANNELS } from '../adapters/channels'
 import { generateForChannel } from '../adapters/channels'
+import { createLLMRouterFromConfig } from '../adapters/llm/factory'
 
 export function createContentRoutes() {
 	const app = new Hono<AppEnv>()
 
 	app.get('/providers', async (c) => {
-		const { createLLMRouterFromConfig } = await import('../adapters/llm/factory')
-		const { getConfig } = await import('../config')
 		try {
-			const router = createLLMRouterFromConfig(getConfig())
+			const config = {
+				OPENAI_API_KEY: c.env.OPENAI_API_KEY,
+				OPENAI_MODEL: c.env.OPENAI_MODEL || 'gpt-4o',
+				ANTHROPIC_API_KEY: c.env.ANTHROPIC_API_KEY,
+				GEMINI_API_KEY: c.env.GEMINI_API_KEY,
+				PERPLEXITY_API_KEY: c.env.PERPLEXITY_API_KEY,
+				GROK_API_KEY: c.env.GROK_API_KEY,
+				HUGGINGFACE_API_KEY: c.env.HUGGINGFACE_API_KEY,
+			} as any
+			const router = createLLMRouterFromConfig(config)
 			const providers = router.listProviders().map((p) => ({
 				name: p.name,
 				capabilities: [...p.capabilities],
@@ -32,19 +40,33 @@ export function createContentRoutes() {
 	})
 
 	app.post('/generate', validate('json', contentGenerate), async (c) => {
-		const { channel, brief, provider } = c.req.valid('json' as never)
-		const { createLLMRouterFromConfig } = await import('../adapters/llm/factory')
-		const { getConfig } = await import('../config')
-		const router = createLLMRouterFromConfig(getConfig())
+		const { channel, brief, provider } = c.req.valid('json' as never) as { channel: string; brief: string; provider?: string }
+		const config = {
+			OPENAI_API_KEY: c.env.OPENAI_API_KEY,
+			OPENAI_MODEL: c.env.OPENAI_MODEL || 'gpt-4o',
+			ANTHROPIC_API_KEY: c.env.ANTHROPIC_API_KEY,
+			GEMINI_API_KEY: c.env.GEMINI_API_KEY,
+			PERPLEXITY_API_KEY: c.env.PERPLEXITY_API_KEY,
+			GROK_API_KEY: c.env.GROK_API_KEY,
+			HUGGINGFACE_API_KEY: c.env.HUGGINGFACE_API_KEY,
+		} as any
+		const router = createLLMRouterFromConfig(config)
 		const result = await generateForChannel(channel, brief, router, provider)
 		return c.json({ channel, content: result })
 	})
 
 	app.post('/generate/batch', validate('json', contentGenerateBatch), async (c) => {
-		const { channels, brief } = c.req.valid('json' as never)
-		const { createLLMRouterFromConfig } = await import('../adapters/llm/factory')
-		const { getConfig } = await import('../config')
-		const router = createLLMRouterFromConfig(getConfig())
+		const { channels, brief } = c.req.valid('json' as never) as { channels: string[]; brief: string }
+		const config = {
+			OPENAI_API_KEY: c.env.OPENAI_API_KEY,
+			OPENAI_MODEL: c.env.OPENAI_MODEL || 'gpt-4o',
+			ANTHROPIC_API_KEY: c.env.ANTHROPIC_API_KEY,
+			GEMINI_API_KEY: c.env.GEMINI_API_KEY,
+			PERPLEXITY_API_KEY: c.env.PERPLEXITY_API_KEY,
+			GROK_API_KEY: c.env.GROK_API_KEY,
+			HUGGINGFACE_API_KEY: c.env.HUGGINGFACE_API_KEY,
+		} as any
+		const router = createLLMRouterFromConfig(config)
 		const results: Record<string, unknown> = {}
 
 		await Promise.all(

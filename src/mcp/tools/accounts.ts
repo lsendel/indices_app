@@ -1,9 +1,8 @@
 import { eq, desc } from 'drizzle-orm'
-import { getDb } from '../../db/client'
+import type { Database } from '../../db/client'
 import { accounts } from '../../db/schema'
 
-export async function handleGetHotAccounts(threshold: number, limit: number, tenantId: string) {
-	const db = getDb()
+export async function handleGetHotAccounts(db: Database, threshold: number, limit: number, tenantId: string) {
 	const rows = await db.select().from(accounts)
 		.where(eq(accounts.tenantId, tenantId))
 		.orderBy(desc(accounts.score))

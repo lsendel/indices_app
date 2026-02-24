@@ -3,8 +3,6 @@ import { eq, and, desc } from 'drizzle-orm'
 import type { AppEnv } from '../app'
 import { validate } from '../middleware/validate'
 import { platformConnections } from '../db/schema'
-import { getDb } from '../db/client'
-import { getConfig } from '../config'
 import { wordpressConnect, blogConnect } from '../types/api'
 import { buildOAuthUrl, exchangeCodeForTokens } from '../adapters/platforms/oauth'
 import { NotFoundError } from '../types/errors'
@@ -14,7 +12,7 @@ export function createPlatformRoutes() {
 
 	// List connected platforms
 	router.get('/', async (c) => {
-		const db = getDb()
+		const db = c.var.db
 		const tenantId = c.get('tenantId')!
 		const items = await db
 			.select()
@@ -27,9 +25,8 @@ export function createPlatformRoutes() {
 	// OAuth-based connect (Instagram, Facebook, TikTok, LinkedIn)
 	router.post('/:platform/connect', async (c) => {
 		const platform = c.req.param('platform')
-		const db = getDb()
+		const db = c.var.db
 		const tenantId = c.get('tenantId')!
-		const config = getConfig()
 
 		// WordPress — direct credentials
 		if (platform === 'wordpress') {
@@ -63,17 +60,17 @@ export function createPlatformRoutes() {
 
 		// OAuth platforms
 		const providers: Record<string, { provider: string; clientId: string; scopes: string[] }> = {
-			instagram: { provider: 'meta', clientId: config.META_APP_ID || '', scopes: ['instagram_basic', 'instagram_content_publish'] },
-			facebook: { provider: 'meta', clientId: config.META_APP_ID || '', scopes: ['pages_manage_posts', 'pages_read_engagement'] },
-			whatsapp: { provider: 'meta', clientId: config.META_APP_ID || '', scopes: ['whatsapp_business_messaging'] },
-			tiktok: { provider: 'tiktok', clientId: config.TIKTOK_CLIENT_KEY || '', scopes: ['video.publish', 'video.list'] },
-			linkedin: { provider: 'linkedin', clientId: config.LINKEDIN_CLIENT_ID || '', scopes: ['w_member_social', 'r_liteprofile'] },
+			instagram: { provider: 'meta', clientId: c.env.META_APP_ID || '', scopes: ['instagram_basic', 'instagram_content_publish'] },
+			facebook: { provider: 'meta', clientId: c.env.META_APP_ID || '', scopes: ['pages_manage_posts', 'pages_read_engagement'] },
+			whatsapp: { provider: 'meta', clientId: c.env.META_APP_ID || '', scopes: ['whatsapp_business_messaging'] },
+			tiktok: { provider: 'tiktok', clientId: c.env.TIKTOK_CLIENT_KEY || '', scopes: ['video.publish', 'video.list'] },
+			linkedin: { provider: 'linkedin', clientId: c.env.LINKEDIN_CLIENT_ID || '', scopes: ['w_member_social', 'r_liteprofile'] },
 		}
 
 		const providerConfig = providers[platform]
 		if (!providerConfig) return c.json({ error: 'Unsupported platform' }, 400)
 
-		const redirectUri = `${config.BETTER_AUTH_URL}/api/v1/platforms/${platform}/callback`
+		const redirectUri = `${c.env.BETTER_AUTH_URL}/api/v1/platforms/${platform}/callback`
 		const state = crypto.randomUUID()
 
 		const url = buildOAuthUrl(providerConfig.provider, {
@@ -92,22 +89,21 @@ export function createPlatformRoutes() {
 		const code = c.req.query('code')
 		if (!code) return c.json({ error: 'Missing authorization code' }, 400)
 
-		const config = getConfig()
-		const db = getDb()
+		const db = c.var.db
 		const tenantId = c.get('tenantId')!
 
 		const secrets: Record<string, { provider: string; clientId: string; clientSecret: string }> = {
-			instagram: { provider: 'meta', clientId: config.META_APP_ID || '', clientSecret: config.META_APP_SECRET || '' },
-			facebook: { provider: 'meta', clientId: config.META_APP_ID || '', clientSecret: config.META_APP_SECRET || '' },
-			whatsapp: { provider: 'meta', clientId: config.META_APP_ID || '', clientSecret: config.META_APP_SECRET || '' },
-			tiktok: { provider: 'tiktok', clientId: config.TIKTOK_CLIENT_KEY || '', clientSecret: config.TIKTOK_CLIENT_SECRET || '' },
-			linkedin: { provider: 'linkedin', clientId: config.LINKEDIN_CLIENT_ID || '', clientSecret: config.LINKEDIN_CLIENT_SECRET || '' },
+			instagram: { provider: 'meta', clientId: c.env.META_APP_ID || '', clientSecret: c.env.META_APP_SECRET || '' },
+			facebook: { provider: 'meta', clientId: c.env.META_APP_ID || '', clientSecret: c.env.META_APP_SECRET || '' },
+			whatsapp: { provider: 'meta', clientId: c.env.META_APP_ID || '', clientSecret: c.env.META_APP_SECRET || '' },
+			tiktok: { provider: 'tiktok', clientId: c.env.TIKTOK_CLIENT_KEY || '', clientSecret: c.env.TIKTOK_CLIENT_SECRET || '' },
+			linkedin: { provider: 'linkedin', clientId: c.env.LINKEDIN_CLIENT_ID || '', clientSecret: c.env.LINKEDIN_CLIENT_SECRET || '' },
 		}
 
 		const secretConfig = secrets[platform]
 		if (!secretConfig) return c.json({ error: 'Unsupported platform' }, 400)
 
-		const redirectUri = `${config.BETTER_AUTH_URL}/api/v1/platforms/${platform}/callback`
+		const redirectUri = `${c.env.BETTER_AUTH_URL}/api/v1/platforms/${platform}/callback`
 		const tokens = await exchangeCodeForTokens(
 			secretConfig.provider,
 			code,
@@ -133,7 +129,7 @@ export function createPlatformRoutes() {
 
 	// Disconnect
 	router.delete('/:platform', async (c) => {
-		const db = getDb()
+		const db = c.var.db
 		const tenantId = c.get('tenantId')!
 		const platform = c.req.param('platform')
 		const [deleted] = await db

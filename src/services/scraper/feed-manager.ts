@@ -1,5 +1,5 @@
 import { eq, sql } from 'drizzle-orm'
-import { getDb } from '../../db/client'
+import type { Database } from '../../db/client'
 import { feedSubscriptions } from '../../db/schema'
 import { logger } from '../../utils/logger'
 
@@ -25,15 +25,13 @@ export function isDue(feed: FeedScheduleInfo): boolean {
 	return Date.now() - feed.lastFetchedAt.getTime() >= parseCronSchedule(feed.schedule)
 }
 
-export async function markFetched(feedId: string, contentHash?: string) {
-	const db = getDb()
+export async function markFetched(db: Database, feedId: string, contentHash?: string) {
 	await db.update(feedSubscriptions).set({
 		lastFetchedAt: new Date(), lastContentHash: contentHash, errorCount: 0, lastError: null, updatedAt: new Date(),
 	}).where(eq(feedSubscriptions.id, feedId))
 }
 
-export async function recordFeedError(feedId: string, error: string) {
-	const db = getDb()
+export async function recordFeedError(db: Database, feedId: string, error: string) {
 	const [updated] = await db
 		.update(feedSubscriptions)
 		.set({
@@ -46,10 +44,10 @@ export async function recordFeedError(feedId: string, error: string) {
 		.returning()
 
 	if (!updated) {
-		logger.warn({ feedId }, 'recordFeedError: feed not found')
+		logger.warn('recordFeedError: feed not found', { feedId })
 		return
 	}
 	if (!updated.active) {
-		logger.warn({ feedId, errorCount: updated.errorCount }, 'Feed deactivated after consecutive errors')
+		logger.warn('Feed deactivated after consecutive errors', { feedId, errorCount: updated.errorCount })
 	}
 }

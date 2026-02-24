@@ -1,15 +1,13 @@
 import { Hono } from 'hono'
 import { createHmac, timingSafeEqual } from 'crypto'
 import type { AppEnv } from '../app'
-import { getConfig } from '../config'
 import { zelutoWebhookEvent } from '../types/zeluto'
 
 export function createZelutoWebhookRoutes() {
 	const router = new Hono<AppEnv>()
 
 	router.post('/', async (c) => {
-		const config = getConfig()
-		const secret = config.ZELUTO_WEBHOOK_SECRET
+		const secret = c.env.ZELUTO_WEBHOOK_SECRET || 'dev-webhook-secret'
 
 		// Verify HMAC signature
 		const signatureHeader = c.req.header('X-Webhook-Signature')

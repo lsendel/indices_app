@@ -3,7 +3,6 @@ import { validate } from '../middleware/validate'
 import { and, eq, sql } from 'drizzle-orm'
 import type { AppEnv } from '../app'
 import { segments } from '../db/schema'
-import { getDb } from '../db/client'
 import { segmentCreate, paginationQuery } from '../types/api'
 import { NotFoundError } from '../types/errors'
 
@@ -13,7 +12,7 @@ export function createSegmentRoutes() {
 	// List segments
 	router.get('/', async (c) => {
 		const { page, limit } = paginationQuery.parse(c.req.query())
-		const db = getDb()
+		const db = c.var.db
 		const tenantId = c.get('tenantId')!
 		const offset = (page - 1) * limit
 
@@ -27,7 +26,7 @@ export function createSegmentRoutes() {
 
 	// Get segment by ID
 	router.get('/:id', async (c) => {
-		const db = getDb()
+		const db = c.var.db
 		const tenantId = c.get('tenantId')!
 		const id = c.req.param('id')
 		const [segment] = await db.select().from(segments).where(and(eq(segments.id, id), eq(segments.tenantId, tenantId)))
@@ -37,7 +36,7 @@ export function createSegmentRoutes() {
 
 	// Create segment
 	router.post('/', validate('json', segmentCreate), async (c) => {
-		const db = getDb()
+		const db = c.var.db
 		const tenantId = c.get('tenantId')!
 		const data = c.req.valid('json')
 		const [created] = await db.insert(segments).values({ ...data, tenantId }).returning()
@@ -46,7 +45,7 @@ export function createSegmentRoutes() {
 
 	// Update segment
 	router.patch('/:id', validate('json', segmentCreate.partial()), async (c) => {
-		const db = getDb()
+		const db = c.var.db
 		const tenantId = c.get('tenantId')!
 		const id = c.req.param('id')
 		const data = c.req.valid('json')
@@ -62,7 +61,7 @@ export function createSegmentRoutes() {
 
 	// Delete segment
 	router.delete('/:id', async (c) => {
-		const db = getDb()
+		const db = c.var.db
 		const tenantId = c.get('tenantId')!
 		const id = c.req.param('id')
 		const [deleted] = await db.delete(segments).where(and(eq(segments.id, id), eq(segments.tenantId, tenantId))).returning()

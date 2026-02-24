@@ -8,26 +8,21 @@ vi.mock('../../src/services/publishing/publisher', () => ({
 	publishContent: (...args: any[]) => mockPublishContent(...args),
 }))
 
-vi.mock('../../src/db/client', () => {
-	const row = {
-		id: 'conn-1', tenantId: 't1', platform: 'instagram',
-		accessToken: 'token', refreshToken: null, expiresAt: null,
-		scopes: null, metadata: {},
-	}
-	// A thenable + chainable mock: any method returns itself, await resolves to data
-	const chain: any = { then: (resolve: any) => resolve([row]) }
-	chain.where = vi.fn().mockReturnValue(chain)
-	chain.orderBy = vi.fn().mockReturnValue(chain)
-	chain.limit = vi.fn().mockReturnValue(chain)
-	chain.offset = vi.fn().mockReturnValue(chain)
+const publishRow = {
+	id: 'conn-1', tenantId: 't1', platform: 'instagram',
+	accessToken: 'token', refreshToken: null, expiresAt: null,
+	scopes: null, metadata: {},
+}
+const publishChain: any = { then: (resolve: any) => resolve([publishRow]) }
+publishChain.where = vi.fn().mockReturnValue(publishChain)
+publishChain.orderBy = vi.fn().mockReturnValue(publishChain)
+publishChain.limit = vi.fn().mockReturnValue(publishChain)
+publishChain.offset = vi.fn().mockReturnValue(publishChain)
 
-	return {
-		getDb: vi.fn().mockReturnValue({
-			select: vi.fn().mockReturnValue({ from: vi.fn().mockReturnValue(chain) }),
-			insert: vi.fn().mockReturnValue({ values: vi.fn().mockReturnValue({ returning: vi.fn().mockResolvedValue([{ id: 'pub-new' }]) }) }),
-		}),
-	}
-})
+const mockDb = {
+	select: vi.fn().mockReturnValue({ from: vi.fn().mockReturnValue(publishChain) }),
+	insert: vi.fn().mockReturnValue({ values: vi.fn().mockReturnValue({ returning: vi.fn().mockResolvedValue([{ id: 'pub-new' }]) }) }),
+}
 
 describe('publish routes', () => {
 	let app: Hono<AppEnv>
@@ -35,7 +30,7 @@ describe('publish routes', () => {
 	beforeEach(() => {
 		mockPublishContent.mockReset()
 		app = new Hono<AppEnv>()
-		app.use('*', async (c, next) => { c.set('tenantId', 't1'); await next() })
+		app.use('*', async (c, next) => { c.set('tenantId', 't1'); c.set('db', mockDb as any); await next() })
 		app.route('/publish', createPublishRoutes())
 	})
 

@@ -3,15 +3,13 @@ import type { AppEnv } from '../app'
 import { verifySignature } from '../services/scraper/dispatcher'
 import { processBatch } from '../services/scraper/batch-handler'
 import { batchPayload } from '../types/api'
-import { getConfig } from '../config'
 import { logger } from '../utils/logger'
 
 export function createIngestRoutes() {
 	const router = new Hono<AppEnv>()
 
 	router.post('/batch', async (c) => {
-		const config = getConfig()
-		const secret = config.SCRAPER_SHARED_SECRET
+		const secret = c.env.SCRAPER_SHARED_SECRET || 'dev-secret'
 		const signature = c.req.header('x-signature')
 		const timestamp = c.req.header('x-timestamp')
 		const body = await c.req.text()
@@ -43,7 +41,7 @@ export function createIngestRoutes() {
 
 		const validation = batchPayload.safeParse(parsed)
 		if (!validation.success) {
-			logger.warn({ errors: validation.error.flatten() }, 'Invalid batch payload')
+			logger.warn('Invalid batch payload', { errors: validation.error.flatten() })
 			return c.json({ error: 'Invalid batch payload', details: validation.error.flatten() }, 422)
 		}
 
@@ -53,7 +51,7 @@ export function createIngestRoutes() {
 			return c.json({ error: 'Missing tenant_id in payload' }, 400)
 		}
 
-		const result = await processBatch(payload, tenantId)
+		const result = await processBatch(c.var.db, payload, tenantId)
 		return c.json(result)
 	})
 

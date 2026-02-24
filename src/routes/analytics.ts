@@ -1,14 +1,13 @@
 import { Hono } from 'hono'
 import { eq, count } from 'drizzle-orm'
 import type { AppEnv } from '../app'
-import { getDb } from '../db/client'
 import { prospects, campaigns, experiments, workflows, scrapeJobs, feedSubscriptions } from '../db/schema'
 
 export function createAnalyticsRoutes() {
 	const router = new Hono<AppEnv>()
 
 	router.get('/dashboard', async (c) => {
-		const db = getDb()
+		const db = c.var.db
 		const tenantId = c.get('tenantId')!
 
 		const [prospectCount] = await db.select({ count: count() }).from(prospects).where(eq(prospects.tenantId, tenantId))
