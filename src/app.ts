@@ -74,7 +74,15 @@ export function createApp() {
 	app.use('/api/v1/*', async (c, next) => {
 		const db = c.var.db
 		if (db) {
-			c.set('loopSystem', bootstrapLoopSystem(db))
+			c.set('loopSystem', bootstrapLoopSystem(db, {
+				OPENAI_API_KEY: c.env.OPENAI_API_KEY,
+				OPENAI_MODEL: c.env.OPENAI_MODEL,
+				ANTHROPIC_API_KEY: c.env.ANTHROPIC_API_KEY,
+				GEMINI_API_KEY: c.env.GEMINI_API_KEY,
+				PERPLEXITY_API_KEY: c.env.PERPLEXITY_API_KEY,
+				GROK_API_KEY: c.env.GROK_API_KEY,
+				HUGGINGFACE_API_KEY: c.env.HUGGINGFACE_API_KEY,
+			}))
 		}
 		await next()
 	})

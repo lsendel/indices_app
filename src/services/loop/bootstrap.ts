@@ -1,6 +1,6 @@
-import { eq, and, desc, sql, gte } from 'drizzle-orm'
+import { eq, and, desc, sql, gte, sum } from 'drizzle-orm'
 import type { Database } from '../../db/client'
-import { loopRules, loopEvents, loopPromptVersions, contentLineage } from '../../db/schema'
+import { loopRules, loopEvents, loopPromptVersions, contentLineage, engagementEvents } from '../../db/schema'
 import { createEventBus, type EventBus } from './event-bus'
 import { createPipelineExecutor, type PipelineConfig } from './pipeline-executor'
 import { createEngagementWatcher } from './watchers/engagement'
@@ -11,6 +11,9 @@ import { createExperimentCloserHandler } from './pipelines/experiment-closer'
 import { createSignalFeedbackHandler } from './pipelines/signal-feedback'
 import { createStrategicReactorHandler } from './pipelines/strategic-reactor'
 import type { Rule } from './rule-engine'
+import { runLearningIteration, type LearningContext } from '../evo/learning-loop'
+import { createLLMRouterFromConfig } from '../../adapters/llm/factory'
+import type { LLMProvider } from '../../adapters/llm/types'
 
 export interface LoopSystem {
 	bus: EventBus
@@ -63,12 +66,78 @@ async function persistEvent(
 	})
 }
 
+export interface LoopSystemConfig {
+	OPENAI_API_KEY?: string
+	OPENAI_MODEL?: string
+	ANTHROPIC_API_KEY?: string
+	GEMINI_API_KEY?: string
+	PERPLEXITY_API_KEY?: string
+	GROK_API_KEY?: string
+	HUGGINGFACE_API_KEY?: string
+}
+
+/** Resolve an LLM provider for the learning loop, or null if none configured */
+function resolveLearningProvider(config: LoopSystemConfig): LLMProvider | null {
+	try {
+		const router = createLLMRouterFromConfig(config as any)
+		return router.resolve('analysis:sentiment')
+	} catch {
+		return null
+	}
+}
+
+/** Build campaign stats from engagement events for a tenant+channel */
+async function buildCampaignStats(db: Database, tenantId: string, channel: string) {
+	const rows = await db
+		.select({
+			eventType: engagementEvents.eventType,
+			total: sum(engagementEvents.count),
+		})
+		.from(engagementEvents)
+		.where(eq(engagementEvents.tenantId, tenantId))
+		.groupBy(engagementEvents.eventType)
+
+	const stats: Record<string, number> = {}
+	for (const r of rows) {
+		stats[r.eventType] = Number(r.total ?? 0)
+	}
+
+	return {
+		sent: (stats.view ?? 0) + (stats.click ?? 0) + (stats.like ?? 0),
+		delivered: stats.view ?? 0,
+		opened: stats.click ?? 0,
+		clicked: stats.click ?? 0,
+		bounced: 0,
+		complained: 0,
+	}
+}
+
+/** Fetch existing prompt versions as a scored population */
+async function getPromptPopulation(db: Database, tenantId: string, channel: string) {
+	const versions = await db
+		.select()
+		.from(loopPromptVersions)
+		.where(
+			and(
+				eq(loopPromptVersions.tenantId, tenantId),
+				eq(loopPromptVersions.channel, channel),
+			),
+		)
+		.orderBy(desc(loopPromptVersions.version))
+		.limit(10)
+
+	return versions.map((v) => ({
+		prompt: v.systemPrompt,
+		score: v.qualityScore ?? 0,
+	}))
+}
+
 /**
  * Bootstrap the closed-loop intelligence system.
  * Creates an event bus, registers pipelines and watchers, and returns
  * the system for use within a request lifecycle.
  */
-export function bootstrapLoopSystem(db: Database): LoopSystem {
+export function bootstrapLoopSystem(db: Database, config?: LoopSystemConfig): LoopSystem {
 	const bus = createEventBus()
 	const executor = createPipelineExecutor(bus)
 
@@ -84,10 +153,32 @@ export function bootstrapLoopSystem(db: Database): LoopSystem {
 
 	// --- Pipeline: Content Flywheel ---
 	// Triggered by engagement.threshold_reached → runs learning iteration → stores candidate prompts
+	const learningProvider = config ? resolveLearningProvider(config) : null
+
 	const flywheelHandler = createContentFlywheelHandler({
 		async runLearning(context) {
-			// Placeholder: real LLM integration wired in Phase 3 (Task 8)
-			return { evaluation: { combinedScore: 0 }, candidatePrompts: [] }
+			if (!learningProvider) {
+				return { evaluation: { combinedScore: 0 }, candidatePrompts: [] }
+			}
+
+			const tenantId = 'default' // Resolved from event in the flywheel handler
+			const campaignStats = await buildCampaignStats(db, tenantId, context.channel)
+			const promptPopulation = await getPromptPopulation(db, tenantId, context.channel)
+
+			const learningContext: LearningContext = {
+				currentPrompt: context.currentPrompt,
+				campaignOutput: '',
+				goal: `Optimize ${context.channel} content engagement`,
+				campaignStats,
+				promptPopulation,
+				strategy: context.strategy as LearningContext['strategy'],
+			}
+
+			const result = await runLearningIteration(learningProvider, learningContext)
+			return {
+				evaluation: { combinedScore: result.evaluation.combinedScore },
+				candidatePrompts: result.candidatePrompts,
+			}
 		},
 		async getActivePrompt(tenantId, channel) {
 			const [row] = await db
