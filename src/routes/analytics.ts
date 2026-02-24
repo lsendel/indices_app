@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import { eq, count } from 'drizzle-orm'
 import type { AppEnv } from '../app'
-import { prospects, campaigns, experiments, workflows, scrapeJobs, feedSubscriptions } from '../db/schema'
+import { prospects, campaigns, experiments, workflows, scrapeJobs, feedSubscriptions, publishedContent } from '../db/schema'
 
 export function createAnalyticsRoutes() {
 	const router = new Hono<AppEnv>()
@@ -16,6 +16,7 @@ export function createAnalyticsRoutes() {
 		const [workflowCount] = await db.select({ count: count() }).from(workflows).where(eq(workflows.tenantId, tenantId))
 		const [jobCount] = await db.select({ count: count() }).from(scrapeJobs).where(eq(scrapeJobs.tenantId, tenantId))
 		const [feedCount] = await db.select({ count: count() }).from(feedSubscriptions).where(eq(feedSubscriptions.tenantId, tenantId))
+		const [contentCount] = await db.select({ count: count() }).from(publishedContent).where(eq(publishedContent.tenantId, tenantId))
 
 		return c.json({
 			prospects: { total: prospectCount?.count ?? 0 },
@@ -24,6 +25,7 @@ export function createAnalyticsRoutes() {
 			workflows: { total: workflowCount?.count ?? 0 },
 			scrapeJobs: { total: jobCount?.count ?? 0 },
 			feeds: { total: feedCount?.count ?? 0 },
+			publishedContent: { total: contentCount?.count ?? 0 },
 		})
 	})
 

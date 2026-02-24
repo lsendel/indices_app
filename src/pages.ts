@@ -138,7 +138,16 @@ if(!d.user){location.href='/login';return;}
 document.getElementById('greeting').textContent='Welcome, '+d.user.name;
 document.getElementById('userEmail').textContent=d.user.email;
 document.getElementById('userAvatar').textContent=(d.user.name||'U')[0].toUpperCase();
+loadStats();
 }catch(e){location.href='/login';}
+}
+async function loadStats(){
+try{const r=await fetch(API+'/api/v1/analytics/dashboard',{credentials:'include'});
+if(r.ok){const d=await r.json();
+document.getElementById('statCampaigns').textContent=d.campaigns?.total??0;
+document.getElementById('statProspects').textContent=d.prospects?.total??0;
+document.getElementById('statContent').textContent=d.publishedContent?.total??0;
+}}catch(e){}
 }
 async function signOut(){
 await fetch(API+'/api/auth/sign-out',{method:'POST',credentials:'include'});

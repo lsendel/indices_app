@@ -28,5 +28,7 @@ describe('analytics routes', () => {
 		expect(body.campaigns).toBeDefined()
 		expect(body.experiments).toBeDefined()
 		expect(body.workflows).toBeDefined()
+		expect(body.publishedContent).toBeDefined()
+		expect(body.publishedContent.total).toBe(0)
 	})
 })
