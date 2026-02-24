@@ -6,6 +6,7 @@ import { registerRoutes } from './routes'
 import { createDb, type Database } from './db/client'
 import { createAuth } from './auth'
 import { landingPage, loginPage, dashboardPage } from './pages'
+import { bootstrapLoopSystem, type LoopSystem } from './services/loop/bootstrap'
 
 export type Bindings = {
 	ENVIRONMENT: string
@@ -49,6 +50,7 @@ export type AppEnv = {
 		tenantId?: string
 		user?: import('./middleware/auth').SessionUser
 		db: Database
+		loopSystem?: LoopSystem
 	}
 }
 
@@ -64,6 +66,15 @@ export function createApp() {
 		const dbUrl = c.env.DATABASE_URL || process.env.DATABASE_URL
 		if (dbUrl) {
 			c.set('db', createDb(dbUrl))
+		}
+		await next()
+	})
+
+	// Initialize closed-loop system when DB is available
+	app.use('/api/v1/*', async (c, next) => {
+		const db = c.var.db
+		if (db) {
+			c.set('loopSystem', bootstrapLoopSystem(db))
 		}
 		await next()
 	})

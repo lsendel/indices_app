@@ -1,5 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { z } from 'zod'
+import type { Database } from '../db/client'
 import { handleGetLoopStatus, handleGetPromptLineage, handleGetLoopInsights } from './tools/loops'
 
 const TOOL_DEFINITIONS = [
@@ -20,7 +21,7 @@ export function getMcpToolNames(): string[] {
 	return [...TOOL_DEFINITIONS]
 }
 
-export function createMcpServer(): McpServer {
+export function createMcpServer(db?: Database): McpServer {
 	const server = new McpServer({
 		name: 'indices-intelligence',
 		version: '1.0.0',
@@ -103,7 +104,8 @@ export function createMcpServer(): McpServer {
 		'Get current status of closed-loop intelligence pipelines',
 		{ tenantId: z.string().uuid().optional() },
 		async (input) => {
-			const result = await handleGetLoopStatus(input.tenantId ?? 'unknown')
+			if (!db) return { content: [{ type: 'text' as const, text: JSON.stringify({ error: 'No database connection' }) }] }
+			const result = await handleGetLoopStatus(db, input.tenantId ?? 'unknown')
 			return { content: [{ type: 'text' as const, text: JSON.stringify(result) }] }
 		},
 	)
@@ -113,7 +115,8 @@ export function createMcpServer(): McpServer {
 		'Get prompt version history and lineage for a channel',
 		{ channel: z.string() },
 		async ({ channel }) => {
-			const result = await handleGetPromptLineage(channel, 'unknown')
+			if (!db) return { content: [{ type: 'text' as const, text: JSON.stringify({ error: 'No database connection' }) }] }
+			const result = await handleGetPromptLineage(db, channel, 'unknown')
 			return { content: [{ type: 'text' as const, text: JSON.stringify(result) }] }
 		},
 	)
@@ -123,7 +126,8 @@ export function createMcpServer(): McpServer {
 		'Get aggregated loop intelligence insights over a time period',
 		{ days: z.number().int().min(1).max(90).default(7) },
 		async ({ days }) => {
-			const result = await handleGetLoopInsights(days, 'unknown')
+			if (!db) return { content: [{ type: 'text' as const, text: JSON.stringify({ error: 'No database connection' }) }] }
+			const result = await handleGetLoopInsights(db, days, 'unknown')
 			return { content: [{ type: 'text' as const, text: JSON.stringify(result) }] }
 		},
 	)

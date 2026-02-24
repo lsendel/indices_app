@@ -58,9 +58,9 @@ export function createMcpRoutes() {
 			get_competitive_intel: () => handleGetCompetitiveIntel(db, args.competitor as string, tenantId),
 			audit_brand_content: () => handleAuditBrandContent(db, args.content as string, args.brandKitId as string, tenantId),
 			generate_workflow: () => handleGenerateWorkflow(args.goal as string, provider),
-			get_loop_status: () => handleGetLoopStatus(tenantId),
-			get_prompt_lineage: () => handleGetPromptLineage(args.channel as string, tenantId),
-			get_loop_insights: () => handleGetLoopInsights((args.days as number) ?? 7, tenantId),
+			get_loop_status: () => handleGetLoopStatus(db, tenantId),
+			get_prompt_lineage: () => handleGetPromptLineage(db, args.channel as string, tenantId),
+			get_loop_insights: () => handleGetLoopInsights(db, (args.days as number) ?? 7, tenantId),
 		}
 
 		const handler = handlers[tool]
