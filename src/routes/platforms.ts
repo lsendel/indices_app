@@ -4,7 +4,7 @@ import type { AppEnv } from '../app'
 import { validate } from '../middleware/validate'
 import { platformConnections } from '../db/schema'
 import { wordpressConnect, blogConnect } from '../types/api'
-import { buildOAuthUrl, exchangeCodeForTokens } from '../adapters/platforms/oauth'
+import { buildOAuthUrl, exchangeCodeForTokens, fetchAccountInfo } from '../adapters/platforms/oauth'
 import { NotFoundError } from '../types/errors'
 
 export function createPlatformRoutes() {
@@ -112,6 +112,9 @@ export function createPlatformRoutes() {
 			redirectUri,
 		)
 
+		// Fetch account info from the platform API
+		const accountInfo = await fetchAccountInfo(secretConfig.provider, tokens.accessToken)
+
 		const [created] = await db
 			.insert(platformConnections)
 			.values({
@@ -120,7 +123,7 @@ export function createPlatformRoutes() {
 				accessToken: tokens.accessToken,
 				refreshToken: tokens.refreshToken,
 				expiresAt: tokens.expiresIn ? new Date(Date.now() + tokens.expiresIn * 1000) : undefined,
-				metadata: {},
+				metadata: accountInfo,
 			})
 			.returning()
 

@@ -1,6 +1,6 @@
-import { eq, and, desc, sql, gte, sum } from 'drizzle-orm'
+import { eq, and, desc, sql, gte, sum, avg } from 'drizzle-orm'
 import type { Database } from '../../db/client'
-import { loopRules, loopEvents, loopPromptVersions, contentLineage, engagementEvents } from '../../db/schema'
+import { loopRules, loopEvents, loopPromptVersions, contentLineage, engagementEvents, experimentArms, experiments, accountScores } from '../../db/schema'
 import { createEventBus, type EventBus } from './event-bus'
 import { createPipelineExecutor, type PipelineConfig } from './pipeline-executor'
 import { createEngagementWatcher } from './watchers/engagement'
@@ -247,17 +247,63 @@ export function bootstrapLoopSystem(db: Database, config?: LoopSystemConfig): Lo
 				campaignId: row.campaignId ?? '',
 			}
 		},
-		async getMedianScore(_channel) {
-			return 50 // Default median — will be computed from real data when engagement events accumulate
+		async getMedianScore(channel) {
+			const [row] = await db
+				.select({ median: avg(engagementEvents.count) })
+				.from(engagementEvents)
+				.where(eq(engagementEvents.platform, channel))
+			return Number(row?.median ?? 50)
 		},
-		async rewardArm(_armId, _reward) {
-			// Will wire to Thompson sampling in Phase 3
+		async rewardArm(armId, reward) {
+			// Thompson sampling: increment alpha (success) or beta (failure)
+			if (reward > 0) {
+				await db.update(experimentArms)
+					.set({ alpha: sql`${experimentArms.alpha} + 1`, conversions: sql`${experimentArms.conversions} + 1` })
+					.where(eq(experimentArms.id, armId))
+			} else {
+				await db.update(experimentArms)
+					.set({ beta: sql`${experimentArms.beta} + 1`, impressions: sql`${experimentArms.impressions} + 1` })
+					.where(eq(experimentArms.id, armId))
+			}
 		},
-		async checkConvergence(_campaignId) {
+		async checkConvergence(campaignId) {
+			const arms = await db
+				.select()
+				.from(experimentArms)
+				.where(eq(experimentArms.experimentId, campaignId))
+
+			if (arms.length < 2) return { converged: false }
+
+			// Simple convergence: if any arm has >= 100 total trials and clear leader
+			const totalTrials = arms.map((a) => a.alpha + a.beta - 2) // subtract priors
+			const minTrials = Math.min(...totalTrials)
+			if (minTrials < 100) return { converged: false }
+
+			// Find arm with highest alpha/(alpha+beta) ratio
+			const sorted = [...arms].sort((a, b) => (b.alpha / (b.alpha + b.beta)) - (a.alpha / (a.alpha + a.beta)))
+			const best = sorted[0]
+			const secondBest = sorted[1]
+
+			// Converged if best arm is clearly ahead (> 5% difference in win rate)
+			const bestRate = best.alpha / (best.alpha + best.beta)
+			const secondRate = secondBest.alpha / (secondBest.alpha + secondBest.beta)
+			if (bestRate - secondRate > 0.05) {
+				return { converged: true, winnerArmId: best.id, confidence: bestRate }
+			}
 			return { converged: false }
 		},
-		async declareWinner(_result) {
-			// Will wire to experiment resolution
+		async declareWinner(result) {
+			if (!result.winnerArmId) return
+			// Find the experiment and close it
+			const [arm] = await db
+				.select({ experimentId: experimentArms.experimentId })
+				.from(experimentArms)
+				.where(eq(experimentArms.id, result.winnerArmId))
+				.limit(1)
+			if (!arm) return
+			await db.update(experiments)
+				.set({ status: 'completed', winnerId: result.winnerArmId, endedAt: new Date() })
+				.where(eq(experiments.id, arm.experimentId))
 		},
 	})
 
@@ -273,11 +319,30 @@ export function bootstrapLoopSystem(db: Database, config?: LoopSystemConfig): Lo
 	// --- Pipeline: Signal Feedback ---
 	// Triggered by delivery.completed → adjusts account scores
 	const signalFeedbackHandler = createSignalFeedbackHandler({
-		async adjustScore(_accountId, _delta) {
-			// Will wire to accounts table score update
+		async adjustScore(accountId, delta) {
+			await db.update(accountScores)
+				.set({
+					behavioralScore: sql`${accountScores.behavioralScore} + ${delta}`,
+					totalScore: sql`${accountScores.totalScore} + ${delta}`,
+					calculatedAt: new Date(),
+				})
+				.where(eq(accountScores.accountId, accountId))
 		},
-		async recalculateLevel(_accountId) {
-			return 'warm'
+		async recalculateLevel(accountId) {
+			const [row] = await db
+				.select({ totalScore: accountScores.totalScore })
+				.from(accountScores)
+				.where(eq(accountScores.accountId, accountId))
+				.limit(1)
+
+			const score = row?.totalScore ?? 0
+			const level: 'hot' | 'warm' | 'cold' = score >= 80 ? 'hot' : score >= 40 ? 'warm' : 'cold'
+
+			await db.update(accountScores)
+				.set({ level })
+				.where(eq(accountScores.accountId, accountId))
+
+			return level
 		},
 	})
 
@@ -291,9 +356,21 @@ export function bootstrapLoopSystem(db: Database, config?: LoopSystemConfig): Lo
 
 	// --- Pipeline: Strategic Reactor ---
 	// Triggered by sentiment.drift_detected → generates reactive content
+	const contentProvider = config ? resolveLearningProvider(config) : null
+
 	const strategicReactorHandler = createStrategicReactorHandler({
-		async generateContent(_brief) {
-			// Will wire to LLM content generation in later phase
+		async generateContent(brief) {
+			if (!contentProvider) return null
+			const prompt = `Generate marketing content for the following brief:
+Goal: ${brief.goal}
+Tone: ${brief.tone}
+Keywords: ${brief.keywords.join(', ')}
+Target channels: ${brief.channels.join(', ')}
+
+Return a brief content outline suitable for these channels.`
+			return contentProvider.generateText(prompt, {
+				systemPrompt: 'You are a marketing content strategist. Generate concise, actionable content briefs.',
+			})
 		},
 		resolveChannels(direction) {
 			return direction === 'negative'
