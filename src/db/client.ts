@@ -1,17 +1,22 @@
 import { drizzle } from 'drizzle-orm/neon-http'
 import { neon } from '@neondatabase/serverless'
-import { getConfig } from '../config'
 import * as schema from './schema'
 
-let _db: ReturnType<typeof drizzle> | null = null
+export function createDb(databaseUrl: string) {
+  const sql = neon(databaseUrl)
+  return drizzle(sql, { schema })
+}
+
+export type Database = ReturnType<typeof createDb>
+
+// Legacy singleton for tests and Bun/Docker fallback
+let _db: Database | null = null
 
 export function getDb() {
   if (!_db) {
-    const config = getConfig()
-    const sql = neon(config.DATABASE_URL)
-    _db = drizzle(sql, { schema })
+    const url = process.env.DATABASE_URL
+    if (!url) throw new Error('DATABASE_URL not set')
+    _db = createDb(url)
   }
   return _db
 }
-
-export type Database = ReturnType<typeof getDb>

@@ -3,7 +3,6 @@ import { validate } from '../middleware/validate'
 import { eq, and, desc } from 'drizzle-orm'
 import type { AppEnv } from '../app'
 import { experiments, experimentArms } from '../db/schema'
-import { getDb } from '../db/client'
 import { experimentCreate, armCreate, armReward } from '../types/api'
 import { NotFoundError } from '../types/errors'
 import { selectArm, updateArm } from '../services/mab/thompson'
@@ -14,7 +13,7 @@ export function createExperimentRoutes() {
 
 	// List experiments
 	router.get('/', async (c) => {
-		const db = getDb()
+		const db = c.var.db
 		const tenantId = c.get('tenantId')!
 
 		const items = await db
@@ -28,7 +27,7 @@ export function createExperimentRoutes() {
 
 	// Create experiment
 	router.post('/', validate('json', experimentCreate), async (c) => {
-		const db = getDb()
+		const db = c.var.db
 		const tenantId = c.get('tenantId')!
 		const data = c.req.valid('json')
 
@@ -38,7 +37,7 @@ export function createExperimentRoutes() {
 
 	// Get experiment with arms
 	router.get('/:id', async (c) => {
-		const db = getDb()
+		const db = c.var.db
 		const tenantId = c.get('tenantId')!
 		const id = c.req.param('id')
 
@@ -58,7 +57,7 @@ export function createExperimentRoutes() {
 
 	// Add arm to experiment
 	router.post('/:id/arms', validate('json', armCreate), async (c) => {
-		const db = getDb()
+		const db = c.var.db
 		const id = c.req.param('id')
 		const data = c.req.valid('json')
 
@@ -72,7 +71,7 @@ export function createExperimentRoutes() {
 
 	// Get MAB allocation using Thompson Sampling
 	router.get('/:id/allocate', async (c) => {
-		const db = getDb()
+		const db = c.var.db
 		const id = c.req.param('id')
 
 		const arms = await db
@@ -100,7 +99,7 @@ export function createExperimentRoutes() {
 
 	// Record reward for an arm
 	router.post('/:id/reward', validate('json', armReward), async (c) => {
-		const db = getDb()
+		const db = c.var.db
 		const { armId, success } = c.req.valid('json')
 
 		const [arm] = await db

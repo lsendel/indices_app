@@ -1,9 +1,8 @@
 import { eq } from 'drizzle-orm'
-import { getDb } from '../../db/client'
+import type { Database } from '../../db/client'
 import { brandKits } from '../../db/schema'
 
-export async function handleAuditBrandContent(content: string, brandKitId: string, tenantId: string) {
-	const db = getDb()
+export async function handleAuditBrandContent(db: Database, content: string, brandKitId: string, tenantId: string) {
 	const [kit] = await db.select().from(brandKits).where(eq(brandKits.id, brandKitId))
 
 	if (!kit) return { brandKitId, status: 'error', message: 'Brand kit not found' }

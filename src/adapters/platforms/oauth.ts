@@ -72,3 +72,38 @@ export async function exchangeCodeForTokens(
 		expiresIn: data.expires_in as number | undefined,
 	}
 }
+
+const ACCOUNT_INFO_URLS: Record<string, string> = {
+	meta: 'https://graph.facebook.com/v21.0/me?fields=id,name',
+	linkedin: 'https://api.linkedin.com/v2/userinfo',
+	tiktok: 'https://open.tiktokapis.com/v2/user/info/?fields=open_id,display_name,avatar_url',
+}
+
+export async function fetchAccountInfo(
+	provider: string,
+	accessToken: string,
+): Promise<Record<string, unknown>> {
+	const url = ACCOUNT_INFO_URLS[provider]
+	if (!url) return {}
+
+	try {
+		const headers: Record<string, string> = { Authorization: `Bearer ${accessToken}` }
+		const res = await fetch(url, { headers })
+		if (!res.ok) return {}
+		const data = (await res.json()) as Record<string, unknown>
+
+		if (provider === 'meta') {
+			return { accountId: data.id, accountName: data.name }
+		}
+		if (provider === 'linkedin') {
+			return { accountId: data.sub, accountName: data.name, email: data.email }
+		}
+		if (provider === 'tiktok') {
+			const user = (data.data as Record<string, unknown>)?.user as Record<string, unknown> | undefined
+			return { accountId: user?.open_id, accountName: user?.display_name, avatarUrl: user?.avatar_url }
+		}
+		return data
+	} catch {
+		return {}
+	}
+}

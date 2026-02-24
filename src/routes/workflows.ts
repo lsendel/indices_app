@@ -3,7 +3,6 @@ import { eq, and, desc, sql } from 'drizzle-orm'
 import type { AppEnv } from '../app'
 import { validate } from '../middleware/validate'
 import { workflows, workflowNodes, workflowEdges } from '../db/schema'
-import { getDb } from '../db/client'
 import { workflowCreate, paginationQuery } from '../types/api'
 import { NotFoundError } from '../types/errors'
 
@@ -13,7 +12,7 @@ export function createWorkflowRoutes() {
 	// List workflows
 	router.get('/', async (c) => {
 		const { page, limit } = paginationQuery.parse(c.req.query())
-		const db = getDb()
+		const db = c.var.db
 		const tenantId = c.get('tenantId')!
 		const offset = (page - 1) * limit
 
@@ -27,7 +26,7 @@ export function createWorkflowRoutes() {
 
 	// Create workflow
 	router.post('/', validate('json', workflowCreate), async (c) => {
-		const db = getDb()
+		const db = c.var.db
 		const tenantId = c.get('tenantId')!
 		const data = c.req.valid('json')
 
@@ -43,7 +42,7 @@ export function createWorkflowRoutes() {
 
 	// Get workflow with nodes and edges
 	router.get('/:id', async (c) => {
-		const db = getDb()
+		const db = c.var.db
 		const tenantId = c.get('tenantId')!
 		const id = c.req.param('id')
 

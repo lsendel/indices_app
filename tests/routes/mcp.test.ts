@@ -14,30 +14,27 @@ vi.mock('../../src/adapters/llm/factory', () => ({
 	}),
 }))
 
-vi.mock('../../src/config', () => ({
-	getConfig: vi.fn().mockReturnValue({}),
-}))
-
-vi.mock('../../src/db/client', () => ({
-	getDb: vi.fn().mockReturnValue({
-		select: vi.fn().mockReturnValue({
-			from: vi.fn().mockReturnValue({
-				where: vi.fn().mockReturnValue({
-					orderBy: vi.fn().mockReturnValue({
-						limit: vi.fn().mockResolvedValue([]),
-					}),
+const mockDb = {
+	select: vi.fn().mockReturnValue({
+		from: vi.fn().mockReturnValue({
+			where: vi.fn().mockReturnValue({
+				orderBy: vi.fn().mockReturnValue({
+					limit: vi.fn().mockResolvedValue([]),
 				}),
 			}),
 		}),
 	}),
-}))
+}
 
 describe('MCP routes', () => {
 	let app: Hono<AppEnv>
 
 	beforeEach(() => {
 		app = new Hono<AppEnv>()
-		app.use('*', async (c, next) => { c.set('tenantId', 't1'); c.set('userId', 'u1'); await next() })
+		app.use('*', async (c, next) => {
+			if (!c.env) (c as any).env = {}
+			c.set('tenantId', 't1'); c.set('userId', 'u1'); c.set('db', mockDb as any); await next()
+		})
 		app.route('/mcp', createMcpRoutes())
 	})
 

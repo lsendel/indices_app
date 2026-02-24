@@ -1,4 +1,3 @@
-import { randomUUID } from 'crypto'
 import type { EventType, LoopEvent, EventHandler } from './types'
 
 export type { LoopEvent }
@@ -38,7 +37,7 @@ export function createEventBus(options?: EventBusOptions): EventBus {
 	return {
 		async emit(tenantId, type, payload) {
 			const event: LoopEvent = {
-				id: randomUUID(),
+				id: crypto.randomUUID(),
 				tenantId,
 				type,
 				payload,

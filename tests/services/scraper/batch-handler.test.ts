@@ -22,10 +22,6 @@ const mockDb = {
 	}),
 }
 
-vi.mock('../../../src/db/client', () => ({
-	getDb: () => mockDb,
-}))
-
 describe('processBatch', () => {
 	it('processes web pages and returns result', async () => {
 		const batch: BatchPayload = {
@@ -37,7 +33,7 @@ describe('processBatch', () => {
 				{ url: 'https://example.com/2', title: 'Article 2', content: 'Content 2' },
 			],
 		}
-		const result = await processBatch(batch, 'tenant-1')
+		const result = await processBatch(mockDb as any, batch, 'tenant-1')
 		expect(result.processed).toBe(2)
 		expect(result.jobId).toBe('job-1')
 	})
@@ -49,12 +45,12 @@ describe('processBatch', () => {
 			is_final: true,
 			posts: [{ platform: 'reddit', title: 'Post', content: 'Content', author: 'user1' }],
 		}
-		const result = await processBatch(batch, 'tenant-1')
+		const result = await processBatch(mockDb as any, batch, 'tenant-1')
 		expect(result.processed).toBeGreaterThanOrEqual(1)
 	})
 
 	it('returns zero for empty batch', async () => {
-		const result = await processBatch({ job_id: 'j3', batch_index: 0, is_final: true }, 'tenant-1')
+		const result = await processBatch(mockDb as any, { job_id: 'j3', batch_index: 0, is_final: true }, 'tenant-1')
 		expect(result.processed).toBe(0)
 	})
 })

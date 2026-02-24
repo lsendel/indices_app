@@ -2,7 +2,6 @@ import { Hono } from 'hono'
 import { eq, sql } from 'drizzle-orm'
 import type { AppEnv } from '../app'
 import { auditLogs } from '../db/schema'
-import { getDb } from '../db/client'
 import { paginationQuery } from '../types/api'
 
 export function createComplianceRoutes() {
@@ -11,7 +10,7 @@ export function createComplianceRoutes() {
 	// List audit logs
 	router.get('/logs', async (c) => {
 		const { page, limit } = paginationQuery.parse(c.req.query())
-		const db = getDb()
+		const db = c.var.db
 		const tenantId = c.get('tenantId')!
 		const offset = (page - 1) * limit
 

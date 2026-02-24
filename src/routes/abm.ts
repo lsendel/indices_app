@@ -3,7 +3,6 @@ import { validate } from '../middleware/validate'
 import { eq, and, sql, desc } from 'drizzle-orm'
 import type { AppEnv } from '../app'
 import { accounts, deals } from '../db/schema'
-import { getDb } from '../db/client'
 import { accountCreate, dealCreate, paginationQuery } from '../types/api'
 import { NotFoundError } from '../types/errors'
 
@@ -13,7 +12,7 @@ export function createAbmRoutes() {
 	// List accounts
 	router.get('/', async (c) => {
 		const { page, limit } = paginationQuery.parse(c.req.query())
-		const db = getDb()
+		const db = c.var.db
 		const tenantId = c.get('tenantId')!
 		const offset = (page - 1) * limit
 
@@ -27,7 +26,7 @@ export function createAbmRoutes() {
 
 	// Create account
 	router.post('/', validate('json', accountCreate), async (c) => {
-		const db = getDb()
+		const db = c.var.db
 		const tenantId = c.get('tenantId')!
 		const data = c.req.valid('json')
 
@@ -37,7 +36,7 @@ export function createAbmRoutes() {
 
 	// Get account with deals
 	router.get('/:id', async (c) => {
-		const db = getDb()
+		const db = c.var.db
 		const tenantId = c.get('tenantId')!
 		const id = c.req.param('id')
 
@@ -50,7 +49,7 @@ export function createAbmRoutes() {
 
 	// Create deal
 	router.post('/deals', validate('json', dealCreate), async (c) => {
-		const db = getDb()
+		const db = c.var.db
 		const tenantId = c.get('tenantId')!
 		const data = c.req.valid('json')
 

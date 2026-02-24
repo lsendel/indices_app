@@ -1,12 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { signPayload, verifySignature, dispatchScrapeJob } from '../../../src/services/scraper/dispatcher'
 
-vi.mock('../../../src/config', () => ({
-	getConfig: vi.fn().mockReturnValue({
-		SCRAPER_SHARED_SECRET: 'test-secret',
-		SCRAPER_WORKER_URL: 'http://localhost:8080',
-	}),
-}))
+const dispatchOpts = { scraperWorkerUrl: 'http://localhost:8080', scraperSharedSecret: 'test-secret' }
 
 describe('signPayload', () => {
 	it('produces a deterministic HMAC-SHA256 hex string', () => {
@@ -66,7 +61,7 @@ describe('dispatchScrapeJob', () => {
 			jobId: 'j1',
 			callbackUrl: 'http://localhost/webhooks/ingest/batch',
 			config: { jobType: 'web_crawl', seedUrls: ['https://example.com'], maxPages: 10 },
-		})
+		}, dispatchOpts)
 
 		expect(mockFetch).toHaveBeenCalledWith(
 			'http://localhost:8080/api/v1/jobs',
@@ -85,7 +80,7 @@ describe('dispatchScrapeJob', () => {
 			jobId: 'j2',
 			callbackUrl: 'http://localhost/webhooks/ingest/batch',
 			config: { jobType: 'social_scrape', subreddits: ['rust'], maxPages: 50 },
-		})
+		}, dispatchOpts)
 
 		expect(mockFetch).toHaveBeenCalledWith(
 			'http://localhost:8080/api/v1/social/scrape',
@@ -104,7 +99,7 @@ describe('dispatchScrapeJob', () => {
 			jobId: 'j3',
 			callbackUrl: 'http://localhost/webhooks/ingest/batch',
 			config: { jobType: 'feed_ingest', feedSubscriptionId: '00000000-0000-0000-0000-000000000001', maxPages: 100 },
-		})
+		}, dispatchOpts)
 
 		expect(mockFetch).toHaveBeenCalledWith(
 			'http://localhost:8080/api/v1/feeds/ingest',
@@ -123,7 +118,7 @@ describe('dispatchScrapeJob', () => {
 			jobId: 'j1',
 			callbackUrl: 'http://localhost/webhooks/ingest/batch',
 			config: { jobType: 'web_crawl', seedUrls: ['https://example.com'], maxPages: 10 },
-		})
+		}, dispatchOpts)
 
 		const headers = mockFetch.mock.calls[0][1].headers
 		expect(headers['Content-Type']).toBe('application/json')
@@ -145,7 +140,7 @@ describe('dispatchScrapeJob', () => {
 				jobId: 'j1',
 				callbackUrl: 'http://localhost/webhooks/ingest/batch',
 				config: { jobType: 'web_crawl', seedUrls: ['https://example.com'], maxPages: 10 },
-			}),
+			}, dispatchOpts),
 		).rejects.toThrow('400 Bad Request: Invalid job config')
 	})
 
@@ -160,7 +155,7 @@ describe('dispatchScrapeJob', () => {
 			jobId: 'j1',
 			callbackUrl: 'http://localhost/webhooks/ingest/batch',
 			config: { jobType: 'web_crawl', seedUrls: ['https://example.com'], maxPages: 10 },
-		})
+		}, dispatchOpts)
 
 		expect(result).toEqual({ status: 'dispatched' })
 	})

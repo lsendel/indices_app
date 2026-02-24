@@ -3,7 +3,6 @@ import { eq, and, desc, sql } from 'drizzle-orm'
 import type { AppEnv } from '../app'
 import { validate } from '../middleware/validate'
 import { evolutionCycles, hitlRequests } from '../db/schema'
-import { getDb } from '../db/client'
 import { evolutionStart, hitlDecision, paginationQuery } from '../types/api'
 import { NotFoundError } from '../types/errors'
 
@@ -13,7 +12,7 @@ export function createEvolutionRoutes() {
 	// List evolution cycles
 	router.get('/cycles', async (c) => {
 		const { page, limit } = paginationQuery.parse(c.req.query())
-		const db = getDb()
+		const db = c.var.db
 		const tenantId = c.get('tenantId')!
 		const offset = (page - 1) * limit
 
@@ -27,7 +26,7 @@ export function createEvolutionRoutes() {
 
 	// Start evolution cycle
 	router.post('/cycles', validate('json', evolutionStart), async (c) => {
-		const db = getDb()
+		const db = c.var.db
 		const tenantId = c.get('tenantId')!
 		const data = c.req.valid('json')
 
@@ -46,7 +45,7 @@ export function createEvolutionRoutes() {
 	// List pending HITL requests
 	router.get('/hitl', async (c) => {
 		const { page, limit } = paginationQuery.parse(c.req.query())
-		const db = getDb()
+		const db = c.var.db
 		const tenantId = c.get('tenantId')!
 		const offset = (page - 1) * limit
 		const condition = and(eq(hitlRequests.tenantId, tenantId), eq(hitlRequests.decision, 'pending'))
@@ -61,7 +60,7 @@ export function createEvolutionRoutes() {
 
 	// Decide on a HITL request
 	router.post('/hitl/:id/decide', validate('json', hitlDecision), async (c) => {
-		const db = getDb()
+		const db = c.var.db
 		const id = c.req.param('id')
 		const tenantId = c.get('tenantId')!
 		const userId = c.get('userId')!

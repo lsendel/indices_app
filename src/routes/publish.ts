@@ -3,7 +3,6 @@ import { eq, and, desc } from 'drizzle-orm'
 import type { AppEnv } from '../app'
 import { validate } from '../middleware/validate'
 import { platformConnections, publishedContent } from '../db/schema'
-import { getDb } from '../db/client'
 import { publishRequest, publishBatchRequest, paginationQuery } from '../types/api'
 import { publishContent } from '../services/publishing/publisher'
 import { NotFoundError } from '../types/errors'
@@ -13,7 +12,7 @@ export function createPublishRoutes() {
 
 	// Publish to a single platform
 	router.post('/', validate('json', publishRequest), async (c) => {
-		const db = getDb()
+		const db = c.var.db
 		const tenantId = c.get('tenantId')!
 		const data = c.req.valid('json')
 
@@ -61,7 +60,7 @@ export function createPublishRoutes() {
 
 	// Batch publish to multiple platforms
 	router.post('/batch', validate('json', publishBatchRequest), async (c) => {
-		const db = getDb()
+		const db = c.var.db
 		const tenantId = c.get('tenantId')!
 		const data = c.req.valid('json')
 
@@ -103,7 +102,7 @@ export function createPublishRoutes() {
 
 	// Publish history
 	router.get('/history', validate('query', paginationQuery), async (c) => {
-		const db = getDb()
+		const db = c.var.db
 		const tenantId = c.get('tenantId')!
 		const { page, limit } = c.req.valid('query')
 		const offset = (page - 1) * limit

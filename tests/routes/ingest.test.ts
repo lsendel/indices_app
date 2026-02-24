@@ -13,15 +13,15 @@ vi.mock('../../src/services/scraper/dispatcher', () => ({
 	verifySignature: vi.fn().mockReturnValue(true),
 }))
 
-vi.mock('../../src/config', () => ({
-	getConfig: vi.fn().mockReturnValue({ SCRAPER_SHARED_SECRET: 'test-secret' }),
-}))
-
 describe('ingest routes', () => {
 	let app: Hono<AppEnv>
 
 	beforeEach(() => {
 		app = new Hono<AppEnv>()
+		app.use('*', async (c, next) => {
+			if (!c.env) (c as any).env = {}
+			await next()
+		})
 		app.route('/ingest', createIngestRoutes())
 	})
 

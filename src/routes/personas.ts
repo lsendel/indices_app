@@ -3,7 +3,6 @@ import { validate } from '../middleware/validate'
 import { eq, and, desc } from 'drizzle-orm'
 import type { AppEnv } from '../app'
 import { personaProfiles } from '../db/schema'
-import { getDb } from '../db/client'
 import { personaCreate } from '../types/api'
 import { NotFoundError } from '../types/errors'
 
@@ -12,7 +11,7 @@ export function createPersonaRoutes() {
 
 	// List personas
 	router.get('/', async (c) => {
-		const db = getDb()
+		const db = c.var.db
 		const tenantId = c.get('tenantId')!
 
 		const items = await db
@@ -26,7 +25,7 @@ export function createPersonaRoutes() {
 
 	// Create persona
 	router.post('/', validate('json', personaCreate), async (c) => {
-		const db = getDb()
+		const db = c.var.db
 		const tenantId = c.get('tenantId')!
 		const data = c.req.valid('json')
 
@@ -36,7 +35,7 @@ export function createPersonaRoutes() {
 
 	// Get persona detail
 	router.get('/:id', async (c) => {
-		const db = getDb()
+		const db = c.var.db
 		const tenantId = c.get('tenantId')!
 		const id = c.req.param('id')
 

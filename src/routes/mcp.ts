@@ -8,7 +8,6 @@ import { handleGetExperimentAllocation } from '../mcp/tools/experiments'
 import { handleAuditBrandContent } from '../mcp/tools/brand'
 import { handleGenerateWorkflow } from '../mcp/tools/workflows'
 import { createLLMRouterFromConfig } from '../adapters/llm/factory'
-import { getConfig } from '../config'
 import { handleGetLoopStatus, handleGetPromptLineage, handleGetLoopInsights } from '../mcp/tools/loops'
 
 const TOOL_DESCRIPTIONS: Record<string, string> = {
@@ -34,24 +33,34 @@ export function createMcpRoutes() {
 	})
 
 	router.post('/call', async (c) => {
+		const db = c.var.db
 		const tenantId = c.get('tenantId')!
 		const { tool, arguments: args } = await c.req.json<{ tool: string; arguments: Record<string, unknown> }>()
 
-		const router = createLLMRouterFromConfig(getConfig())
-		const provider = router.resolve('analysis:persona')
+		const config = {
+			OPENAI_API_KEY: c.env.OPENAI_API_KEY,
+			OPENAI_MODEL: c.env.OPENAI_MODEL || 'gpt-4o',
+			ANTHROPIC_API_KEY: c.env.ANTHROPIC_API_KEY,
+			GEMINI_API_KEY: c.env.GEMINI_API_KEY,
+			PERPLEXITY_API_KEY: c.env.PERPLEXITY_API_KEY,
+			GROK_API_KEY: c.env.GROK_API_KEY,
+			HUGGINGFACE_API_KEY: c.env.HUGGINGFACE_API_KEY,
+		} as any
+		const llmRouter = createLLMRouterFromConfig(config)
+		const provider = llmRouter.resolve('analysis:persona')
 
 		const handlers: Record<string, () => Promise<unknown>> = {
-			get_sentiment_analysis: () => handleGetSentimentAnalysis(args.brand as string, (args.timeframeDays as number) ?? 30, tenantId),
-			get_hot_accounts: () => handleGetHotAccounts((args.threshold as number) ?? 70, (args.limit as number) ?? 10, tenantId),
+			get_sentiment_analysis: () => handleGetSentimentAnalysis(db, args.brand as string, (args.timeframeDays as number) ?? 30, tenantId),
+			get_hot_accounts: () => handleGetHotAccounts(db, (args.threshold as number) ?? 70, (args.limit as number) ?? 10, tenantId),
 			generate_persona: () => handleGeneratePersona(args.segmentId as string, provider, tenantId),
 			score_lead: () => handleScoreLead(args as { email?: string; company?: string; signals: string[] }, tenantId),
-			get_experiment_allocation: () => handleGetExperimentAllocation(args.experimentId as string, tenantId),
-			get_competitive_intel: () => handleGetCompetitiveIntel(args.competitor as string, tenantId),
-			audit_brand_content: () => handleAuditBrandContent(args.content as string, args.brandKitId as string, tenantId),
+			get_experiment_allocation: () => handleGetExperimentAllocation(db, args.experimentId as string, tenantId),
+			get_competitive_intel: () => handleGetCompetitiveIntel(db, args.competitor as string, tenantId),
+			audit_brand_content: () => handleAuditBrandContent(db, args.content as string, args.brandKitId as string, tenantId),
 			generate_workflow: () => handleGenerateWorkflow(args.goal as string, provider),
-			get_loop_status: () => handleGetLoopStatus(tenantId),
-			get_prompt_lineage: () => handleGetPromptLineage(args.channel as string, tenantId),
-			get_loop_insights: () => handleGetLoopInsights((args.days as number) ?? 7, tenantId),
+			get_loop_status: () => handleGetLoopStatus(db, tenantId),
+			get_prompt_lineage: () => handleGetPromptLineage(db, args.channel as string, tenantId),
+			get_loop_insights: () => handleGetLoopInsights(db, (args.days as number) ?? 7, tenantId),
 		}
 
 		const handler = handlers[tool]

@@ -1,9 +1,8 @@
 import { Hono } from 'hono'
 import { eq, sql, and, inArray } from 'drizzle-orm'
-import type { AppEnv } from '../app'
+import type { AppEnv, Bindings } from '../app'
+import type { Database } from '../db/client'
 import { validate } from '../middleware/validate'
-import { getDb } from '../db/client'
-import { getConfig } from '../config'
 import {
 	zelutoConfigs,
 	syncLogs,
@@ -27,10 +26,7 @@ import { syncCampaign } from '../services/zeluto/campaign-sync'
 import { syncExperiment } from '../services/zeluto/experiment-sync'
 import { syncContacts, type ProspectData } from '../services/zeluto/contact-sync'
 
-async function getClientForTenant(tenantId: string): Promise<ZelutoClient> {
-	const db = getDb()
-	const config = getConfig()
-
+async function getClientForTenant(tenantId: string, db: Database, env: Bindings): Promise<ZelutoClient> {
 	const [zelutoConfig] = await db
 		.select()
 		.from(zelutoConfigs)
@@ -38,24 +34,24 @@ async function getClientForTenant(tenantId: string): Promise<ZelutoClient> {
 
 	if (zelutoConfig) {
 		return new ZelutoClient({
-			baseUrl: config.ZELUTO_API_URL,
+			baseUrl: env.ZELUTO_API_URL,
 			tenantContext: {
 				organizationId: zelutoConfig.organizationId,
 				userId: zelutoConfig.userId,
 				userRole: zelutoConfig.userRole as any,
 				plan: zelutoConfig.plan as any,
 			},
-			apiKey: config.ZELUTO_API_KEY,
+			apiKey: env.ZELUTO_API_KEY,
 		})
 	}
 
 	// Fallback to env var
-	if (config.ZELUTO_TENANT_CONTEXT) {
-		const ctx = JSON.parse(config.ZELUTO_TENANT_CONTEXT)
+	if (env.ZELUTO_TENANT_CONTEXT) {
+		const ctx = JSON.parse(env.ZELUTO_TENANT_CONTEXT)
 		return new ZelutoClient({
-			baseUrl: config.ZELUTO_API_URL,
+			baseUrl: env.ZELUTO_API_URL,
 			tenantContext: ctx,
-			apiKey: config.ZELUTO_API_KEY,
+			apiKey: env.ZELUTO_API_KEY,
 		})
 	}
 
@@ -63,11 +59,11 @@ async function getClientForTenant(tenantId: string): Promise<ZelutoClient> {
 }
 
 async function logSync(
+	db: Database,
 	tenantId: string,
 	syncType: string,
 	fn: () => Promise<{ externalId?: string; result: unknown }>,
 ) {
-	const db = getDb()
 	const [log] = await db
 		.insert(syncLogs)
 		.values({
@@ -100,7 +96,7 @@ export function createZelutoRoutes() {
 
 	// Save zeluto config for tenant
 	router.post('/config', validate('json', zelutoConfigCreate), async (c) => {
-		const db = getDb()
+		const db = c.var.db
 		const tenantId = c.get('tenantId')!
 		const data = c.req.valid('json')
 
@@ -118,7 +114,7 @@ export function createZelutoRoutes() {
 
 	// Get zeluto config for tenant
 	router.get('/config', async (c) => {
-		const db = getDb()
+		const db = c.var.db
 		const tenantId = c.get('tenantId')!
 
 		const [config] = await db
@@ -132,11 +128,12 @@ export function createZelutoRoutes() {
 
 	// Sync content to zeluto template
 	router.post('/sync/content', validate('json', contentSyncRequest), async (c) => {
+		const db = c.var.db
 		const tenantId = c.get('tenantId')!
 		const data = c.req.valid('json')
-		const client = await getClientForTenant(tenantId)
+		const client = await getClientForTenant(tenantId, db, c.env)
 
-		const { syncLogId, result } = await logSync(tenantId, 'content', async () => {
+		const { syncLogId, result } = await logSync(db, tenantId, 'content', async () => {
 			const r = await syncContent(client, data)
 			return { externalId: String(r.zelutoTemplateId), result: r }
 		})
@@ -146,10 +143,10 @@ export function createZelutoRoutes() {
 
 	// Sync contacts to zeluto CRM
 	router.post('/sync/contacts', validate('json', contactSyncRequest), async (c) => {
+		const db = c.var.db
 		const tenantId = c.get('tenantId')!
 		const { prospectIds } = c.req.valid('json')
-		const db = getDb()
-		const client = await getClientForTenant(tenantId)
+		const client = await getClientForTenant(tenantId, db, c.env)
 
 		const prospectRows = await db
 			.select()
@@ -165,7 +162,7 @@ export function createZelutoRoutes() {
 			linkedinId: p.linkedinId ?? undefined,
 		}))
 
-		const { syncLogId, result } = await logSync(tenantId, 'contact', async () => {
+		const { syncLogId, result } = await logSync(db, tenantId, 'contact', async () => {
 			const r = await syncContacts(client, prospectData)
 			return { result: r }
 		})
@@ -175,10 +172,10 @@ export function createZelutoRoutes() {
 
 	// Sync campaign to zeluto
 	router.post('/sync/campaign', validate('json', campaignSyncRequest), async (c) => {
+		const db = c.var.db
 		const tenantId = c.get('tenantId')!
 		const data = c.req.valid('json')
-		const db = getDb()
-		const client = await getClientForTenant(tenantId)
+		const client = await getClientForTenant(tenantId, db, c.env)
 
 		const [campaign] = await db
 			.select()
@@ -187,7 +184,7 @@ export function createZelutoRoutes() {
 
 		if (!campaign) throw new NotFoundError('Campaign', data.campaignId)
 
-		const { syncLogId, result } = await logSync(tenantId, 'campaign', async () => {
+		const { syncLogId, result } = await logSync(db, tenantId, 'campaign', async () => {
 			const r = await syncCampaign(client, {
 				name: campaign.name,
 				goal: campaign.goal,
@@ -203,10 +200,10 @@ export function createZelutoRoutes() {
 
 	// Sync experiment to zeluto A/B test
 	router.post('/sync/experiment', validate('json', experimentSyncRequest), async (c) => {
+		const db = c.var.db
 		const tenantId = c.get('tenantId')!
 		const data = c.req.valid('json')
-		const db = getDb()
-		const client = await getClientForTenant(tenantId)
+		const client = await getClientForTenant(tenantId, db, c.env)
 
 		const [experiment] = await db
 			.select()
@@ -220,7 +217,7 @@ export function createZelutoRoutes() {
 			.from(experimentArms)
 			.where(eq(experimentArms.experimentId, data.experimentId))
 
-		const { syncLogId, result } = await logSync(tenantId, 'experiment', async () => {
+		const { syncLogId, result } = await logSync(db, tenantId, 'experiment', async () => {
 			const r = await syncExperiment(client, {
 				experimentName: experiment.name,
 				zelutoCampaignId: data.zelutoCampaignId,
@@ -241,7 +238,7 @@ export function createZelutoRoutes() {
 	// List sync logs
 	router.get('/sync/logs', async (c) => {
 		const { page, limit } = paginationQuery.parse(c.req.query())
-		const db = getDb()
+		const db = c.var.db
 		const tenantId = c.get('tenantId')!
 		const offset = (page - 1) * limit
 

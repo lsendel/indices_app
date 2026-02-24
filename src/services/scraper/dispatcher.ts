@@ -1,5 +1,4 @@
 import { createHmac, timingSafeEqual } from 'crypto'
-import { getConfig } from '../../config'
 import { logger } from '../../utils/logger'
 import type { ScrapeJobDispatch } from '../../types/api'
 
@@ -17,24 +16,26 @@ export function verifySignature(
 	try {
 		return timingSafeEqual(Buffer.from(signature), Buffer.from(expected))
 	} catch (e) {
-		logger.warn({
+		logger.warn('verifySignature: timing-safe comparison failed', {
 			error: e instanceof Error ? e.message : String(e),
 			signatureLength: signature?.length,
 			expectedLength: expected?.length,
-		}, 'verifySignature: timing-safe comparison failed')
+		})
 		return false
 	}
 }
 
-export async function dispatchScrapeJob(job: {
-	jobId: string
-	callbackUrl: string
-	config: ScrapeJobDispatch
-}) {
-	const config = getConfig()
+export async function dispatchScrapeJob(
+	job: {
+		jobId: string
+		callbackUrl: string
+		config: ScrapeJobDispatch
+	},
+	opts: { scraperWorkerUrl: string; scraperSharedSecret: string },
+) {
 	const body = JSON.stringify(job)
 	const timestamp = Math.floor(Date.now() / 1000).toString()
-	const signature = signPayload(body, timestamp, config.SCRAPER_SHARED_SECRET)
+	const signature = signPayload(body, timestamp, opts.scraperSharedSecret)
 
 	const endpoint = job.config.jobType === 'web_crawl'
 		? '/api/v1/jobs'
@@ -42,7 +43,7 @@ export async function dispatchScrapeJob(job: {
 			? '/api/v1/social/scrape'
 			: '/api/v1/feeds/ingest'
 
-	const response = await fetch(`${config.SCRAPER_WORKER_URL}${endpoint}`, {
+	const response = await fetch(`${opts.scraperWorkerUrl}${endpoint}`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json',

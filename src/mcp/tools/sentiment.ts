@@ -1,9 +1,8 @@
 import { eq, and, gte } from 'drizzle-orm'
-import { getDb } from '../../db/client'
+import type { Database } from '../../db/client'
 import { sentimentArticles } from '../../db/schema'
 
-export async function handleGetSentimentAnalysis(brand: string, timeframeDays: number, tenantId: string) {
-	const db = getDb()
+export async function handleGetSentimentAnalysis(db: Database, brand: string, timeframeDays: number, tenantId: string) {
 	const since = new Date(Date.now() - timeframeDays * 24 * 60 * 60 * 1000)
 
 	const rows = await db.select().from(sentimentArticles)
@@ -18,8 +17,7 @@ export async function handleGetSentimentAnalysis(brand: string, timeframeDays: n
 	return { brand, timeframeDays, averageScore, dataPoints: rows.length, topThemes }
 }
 
-export async function handleGetCompetitiveIntel(competitor: string, tenantId: string) {
-	const db = getDb()
+export async function handleGetCompetitiveIntel(db: Database, competitor: string, tenantId: string) {
 	const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
 
 	const rows = await db.select().from(sentimentArticles)

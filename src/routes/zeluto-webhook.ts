@@ -1,15 +1,27 @@
 import { Hono } from 'hono'
 import { createHmac, timingSafeEqual } from 'crypto'
+import { eq } from 'drizzle-orm'
 import type { AppEnv } from '../app'
-import { getConfig } from '../config'
 import { zelutoWebhookEvent } from '../types/zeluto'
+import { deliveryEvents, zelutoConfigs } from '../db/schema'
+
+const ZELUTO_EVENT_TYPE_MAP: Record<string, 'queued' | 'sent' | 'delivered' | 'opened' | 'clicked' | 'bounced' | 'complained' | 'unsubscribed' | 'failed'> = {
+	'delivery.queued': 'queued',
+	'delivery.sent': 'sent',
+	'delivery.delivered': 'delivered',
+	'delivery.opened': 'opened',
+	'delivery.clicked': 'clicked',
+	'delivery.bounced': 'bounced',
+	'delivery.complained': 'complained',
+	'delivery.unsubscribed': 'unsubscribed',
+	'delivery.failed': 'failed',
+}
 
 export function createZelutoWebhookRoutes() {
 	const router = new Hono<AppEnv>()
 
 	router.post('/', async (c) => {
-		const config = getConfig()
-		const secret = config.ZELUTO_WEBHOOK_SECRET
+		const secret = c.env.ZELUTO_WEBHOOK_SECRET || 'dev-webhook-secret'
 
 		// Verify HMAC signature
 		const signatureHeader = c.req.header('X-Webhook-Signature')
@@ -40,10 +52,63 @@ export function createZelutoWebhookRoutes() {
 			return c.json({ error: 'VALIDATION_ERROR', message: 'Invalid event payload' }, 422)
 		}
 
-		// Acknowledge receipt — event processing is best-effort
-		// In production, this would store to delivery_events table and trigger async processing
+		const event = parsed.data
+		const db = c.var.db
+		const loopSystem = c.var.loopSystem
+
+		// Best-effort: store event and emit to event bus
+		try {
+			if (db) {
+				await processWebhookEvent(db, loopSystem, event)
+			}
+		} catch {
+			// Webhook processing is best-effort — always acknowledge receipt
+		}
+
 		return c.json({ received: true })
 	})
 
 	return router
+}
+
+async function processWebhookEvent(
+	db: import('../db/client').Database,
+	loopSystem: import('../services/loop/bootstrap').LoopSystem | undefined,
+	event: { eventType: string; payload: Record<string, unknown> },
+) {
+	// Resolve tenant from zeluto config (webhook is server-to-server, no user session)
+	const [config] = await db
+		.select({ tenantId: zelutoConfigs.tenantId })
+		.from(zelutoConfigs)
+		.where(eq(zelutoConfigs.active, true))
+		.limit(1)
+
+	if (!config) return
+
+	const tenantId = config.tenantId
+	const deliveryEventType = ZELUTO_EVENT_TYPE_MAP[event.eventType]
+	if (!deliveryEventType) return
+
+	const payload = event.payload
+	const channel = (payload.channel as string) ?? 'email'
+
+	await db.insert(deliveryEvents).values({
+		tenantId,
+		zelutoJobId: (payload.jobId as string) ?? null,
+		channel: channel as any,
+		eventType: deliveryEventType,
+		contactEmail: (payload.contactEmail as string) ?? null,
+		providerMessageId: (payload.providerMessageId as string) ?? null,
+		eventData: payload,
+		occurredAt: new Date(),
+	})
+
+	// Emit to event bus for pipeline processing
+	if (loopSystem) {
+		await loopSystem.watchers.delivery.onDeliveryCompleted(tenantId, {
+			campaignId: (payload.campaignId as string) ?? '',
+			channel,
+			metrics: { [deliveryEventType]: 1 },
+		})
+	}
 }

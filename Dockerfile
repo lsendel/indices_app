@@ -1,3 +1,4 @@
+# Fallback: primary deployment is Cloudflare Workers (see wrangler.toml)
 FROM oven/bun:1-alpine AS base
 WORKDIR /app
 

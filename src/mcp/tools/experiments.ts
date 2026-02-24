@@ -1,11 +1,10 @@
 import { eq } from 'drizzle-orm'
-import { getDb } from '../../db/client'
+import type { Database } from '../../db/client'
 import { experimentArms } from '../../db/schema'
 import { selectArm } from '../../services/mab/thompson'
 import { allocateTraffic } from '../../services/mab/allocator'
 
-export async function handleGetExperimentAllocation(experimentId: string, tenantId: string) {
-	const db = getDb()
+export async function handleGetExperimentAllocation(db: Database, experimentId: string, tenantId: string) {
 	const arms = await db.select().from(experimentArms).where(eq(experimentArms.experimentId, experimentId))
 
 	if (arms.length === 0) {

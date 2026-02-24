@@ -3,7 +3,6 @@ import { validate } from '../middleware/validate'
 import { and, eq, sql } from 'drizzle-orm'
 import type { AppEnv } from '../app'
 import { campaigns, channelResults } from '../db/schema'
-import { getDb } from '../db/client'
 import { campaignCreate, paginationQuery } from '../types/api'
 import { NotFoundError } from '../types/errors'
 
@@ -13,7 +12,7 @@ export function createCampaignRoutes() {
 	// List campaigns
 	router.get('/', async (c) => {
 		const { page, limit } = paginationQuery.parse(c.req.query())
-		const db = getDb()
+		const db = c.var.db
 		const tenantId = c.get('tenantId')!
 		const offset = (page - 1) * limit
 
@@ -27,7 +26,7 @@ export function createCampaignRoutes() {
 
 	// Get campaign with channel results
 	router.get('/:id', async (c) => {
-		const db = getDb()
+		const db = c.var.db
 		const tenantId = c.get('tenantId')!
 		const id = c.req.param('id')
 
@@ -41,7 +40,7 @@ export function createCampaignRoutes() {
 
 	// Create campaign
 	router.post('/', validate('json', campaignCreate), async (c) => {
-		const db = getDb()
+		const db = c.var.db
 		const tenantId = c.get('tenantId')!
 		const data = c.req.valid('json')
 
@@ -62,7 +61,7 @@ export function createCampaignRoutes() {
 
 	// Update campaign status
 	router.patch('/:id/status', async (c) => {
-		const db = getDb()
+		const db = c.var.db
 		const tenantId = c.get('tenantId')!
 		const id = c.req.param('id')
 		const body = await c.req.json<{ status: string }>()

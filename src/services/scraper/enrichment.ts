@@ -36,19 +36,19 @@ export async function enrichArticles(
 		} catch (e) {
 			failedCount++
 			lastError = e instanceof Error ? `${e.constructor.name}: ${e.message}` : String(e)
-			logger.error({ articleId: article.id, error: lastError }, 'Sentiment analysis failed for article')
+			logger.error('Sentiment analysis failed for article', { articleId: article.id, error: lastError })
 		}
 	}
 
 	if (failedCount > 0) {
 		const failureRate = failedCount / withContent.length
-		logger.warn({
+		logger.warn('enrichArticles: partial failure summary', {
 			attempted: withContent.length,
 			succeeded: results.length,
 			failed: failedCount,
 			failureRate: `${(failureRate * 100).toFixed(1)}%`,
 			lastError,
-		}, 'enrichArticles: partial failure summary')
+		})
 
 		if (failedCount === withContent.length) {
 			throw new Error(`enrichArticles: all ${failedCount} articles failed enrichment (last error: ${lastError})`)

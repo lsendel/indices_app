@@ -1,26 +1,23 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { Hono } from 'hono'
+import type { AppEnv } from '../../../src/app'
 import { createMetaWebhookRoutes } from '../../../src/routes/webhooks/meta'
 
-vi.mock('../../../src/config', () => ({
-	getConfig: vi.fn().mockReturnValue({
-		META_APP_SECRET: 'test-secret',
-	}),
-}))
-
-vi.mock('../../../src/db/client', () => {
-	return {
-		getDb: vi.fn().mockReturnValue({
-			insert: vi.fn().mockReturnValue({ values: vi.fn().mockReturnValue({ returning: vi.fn().mockResolvedValue([{ id: 'evt-1' }]) }) }),
-		}),
-	}
-})
+const mockDb = {
+	insert: vi.fn().mockReturnValue({ values: vi.fn().mockReturnValue({ returning: vi.fn().mockResolvedValue([{ id: 'evt-1' }]) }) }),
+}
 
 describe('Meta webhook routes', () => {
-	let app: Hono
+	let app: Hono<AppEnv>
 
 	beforeEach(() => {
-		app = new Hono()
+		app = new Hono<AppEnv>()
+		app.use('*', async (c, next) => {
+			if (!c.env) (c as any).env = {}
+			;(c.env as any).META_APP_SECRET = 'test-secret'
+			c.set('db', mockDb as any)
+			await next()
+		})
 		app.route('/webhooks/meta', createMetaWebhookRoutes())
 	})
 
