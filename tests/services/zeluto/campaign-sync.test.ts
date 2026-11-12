@@ -48,40 +48,20 @@ describe('campaign sync', () => {
 			})
 		})
 
-		it('sends campaign when action is send', async () => {
+		it('refuses to send or schedule from Indices', async () => {
 			const mockClient = {
-				createCampaign: vi.fn().mockResolvedValue({ id: 10, status: 'draft' }),
-				sendCampaign: vi.fn().mockResolvedValue({ id: 10, status: 'sending' }),
+				createCampaign: vi.fn(),
+				sendCampaign: vi.fn(),
+				scheduleCampaign: vi.fn(),
 			}
-
-			const result = await syncCampaign(mockClient as any, {
-				name: 'Launch',
-				goal: 'Go',
-				channels: ['email'],
-				action: 'send',
-			})
-
-			expect(mockClient.sendCampaign).toHaveBeenCalledWith(10)
-			expect(result.zelutoCampaignId).toBe(10)
-		})
-
-		it('schedules campaign when action is schedule', async () => {
-			const mockClient = {
-				createCampaign: vi.fn().mockResolvedValue({ id: 10, status: 'draft' }),
-				scheduleCampaign: vi.fn().mockResolvedValue({ id: 10, status: 'scheduled' }),
+			for (const action of ['send', 'schedule'] as const) {
+				await expect(
+					syncCampaign(mockClient as any, { name: 'Launch', goal: 'Go', channels: ['email'], action } as any),
+				).rejects.toThrow(/send gate/)
 			}
-
-			const scheduledAt = '2026-03-01T09:00:00Z'
-			const result = await syncCampaign(mockClient as any, {
-				name: 'Launch',
-				goal: 'Go',
-				channels: ['email'],
-				action: 'schedule',
-				scheduledAt,
-			})
-
-			expect(mockClient.scheduleCampaign).toHaveBeenCalledWith(10, scheduledAt)
-			expect(result.zelutoCampaignId).toBe(10)
+			expect(mockClient.createCampaign).not.toHaveBeenCalled()
+			expect(mockClient.sendCampaign).not.toHaveBeenCalled()
+			expect(mockClient.scheduleCampaign).not.toHaveBeenCalled()
 		})
 	})
 })

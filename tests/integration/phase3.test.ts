@@ -82,19 +82,19 @@ describe('Phase 3: Zeluto Integration', () => {
 			expect(result.imported).toBe(2)
 		})
 
-		it('campaign sync creates and optionally sends', async () => {
+		it('campaign sync creates but never sends', async () => {
 			const mockClient = {
 				createCampaign: vi.fn().mockResolvedValue({ id: 5, status: 'draft' }),
-				sendCampaign: vi.fn().mockResolvedValue({ id: 5, status: 'sending' }),
+				sendCampaign: vi.fn(),
 			}
 			const result = await syncCampaign(mockClient as any, {
 				name: 'Test',
 				goal: 'Goal',
 				channels: ['email'],
-				action: 'send',
+				action: 'create',
 			})
 			expect(result.zelutoCampaignId).toBe(5)
-			expect(mockClient.sendCampaign).toHaveBeenCalled()
+			expect(mockClient.sendCampaign).not.toHaveBeenCalled()
 		})
 
 		it('experiment sync maps arms to variants', async () => {

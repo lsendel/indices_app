@@ -7,6 +7,7 @@ import { handleGeneratePersona } from '../mcp/tools/personas'
 import { handleGetExperimentAllocation } from '../mcp/tools/experiments'
 import { handleAuditBrandContent } from '../mcp/tools/brand'
 import { handleGenerateWorkflow } from '../mcp/tools/workflows'
+import { handleCreateCampaignDraft, handleUpdateCampaignCreative, handleGetCampaignPreview, handleListCampaigns } from '../mcp/tools/campaigns'
 import { createLLMRouterFromConfig } from '../adapters/llm/factory'
 import { handleGetLoopStatus, handleGetPromptLineage, handleGetLoopInsights } from '../mcp/tools/loops'
 
@@ -21,6 +22,10 @@ const TOOL_DESCRIPTIONS: Record<string, string> = {
 	generate_workflow: 'Auto-generate a campaign workflow DAG',
 	get_loop_status: 'Get current status of closed-loop intelligence pipelines',
 	get_prompt_lineage: 'Get prompt version history and lineage for a channel',
+	create_campaign_draft: 'Create an email campaign draft (cannot send; human approval required)',
+	update_campaign_creative: 'Edit campaign creative (clears approval)',
+	get_campaign_preview: 'Get campaign creative, hash, approval status and blockers',
+	list_campaigns: 'List campaigns with approval status',
 	get_loop_insights: 'Get aggregated loop intelligence insights over a time period',
 }
 
@@ -57,6 +62,10 @@ export function createMcpRoutes() {
 			get_experiment_allocation: () => handleGetExperimentAllocation(db, args.experimentId as string, tenantId),
 			get_competitive_intel: () => handleGetCompetitiveIntel(db, args.competitor as string, tenantId),
 			audit_brand_content: () => handleAuditBrandContent(db, args.content as string, args.brandKitId as string, tenantId),
+			create_campaign_draft: () => handleCreateCampaignDraft(db, tenantId, args as any),
+			update_campaign_creative: () => handleUpdateCampaignCreative(db, tenantId, args.campaignId as string, args.creative as any),
+			get_campaign_preview: () => handleGetCampaignPreview(db, tenantId, args.campaignId as string),
+			list_campaigns: () => handleListCampaigns(db, tenantId, (args.limit as number) ?? 20),
 			generate_workflow: () => handleGenerateWorkflow(args.goal as string, provider),
 			get_loop_status: () => handleGetLoopStatus(db, tenantId),
 			get_prompt_lineage: () => handleGetPromptLineage(db, args.channel as string, tenantId),

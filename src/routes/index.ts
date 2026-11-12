@@ -27,12 +27,16 @@ import { createMetaWebhookRoutes } from './webhooks/meta'
 import { createEngagementRoutes } from './engagement'
 import { createLoopRoutes } from './loops'
 import { createContentRoutes } from './content'
+import { createZelutoPullRoutes } from './zeluto-pull'
 
 export function registerRoutes(app: Hono<AppEnv>) {
 	// Webhook routes (HMAC-authenticated, no user session)
 	app.route('/webhooks/zeluto', createZelutoWebhookRoutes())
 	app.route('/webhooks/meta', createMetaWebhookRoutes())
 	app.route('/webhooks/ingest', createIngestRoutes())
+
+	// Service-to-service pull of approved campaign creative (bearer token, fails closed)
+	app.route('/integrations/zeluto', createZelutoPullRoutes())
 
 	// Protected API routes
 	app.use('/api/v1/*', authMiddleware())
