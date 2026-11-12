@@ -4,6 +4,14 @@ import { and, eq, sql } from 'drizzle-orm'
 import type { AppEnv } from '../app'
 import { campaigns, channelResults } from '../db/schema'
 import { campaignCreate, paginationQuery } from '../types/api'
+import {
+	approvalBlockers,
+	computeContentHash,
+	creativeUpdate,
+	isApprover,
+	renderCreativePreviewHtml,
+} from '../services/campaigns/creative'
+import { ForbiddenError } from '../types/errors'
 import { NotFoundError } from '../types/errors'
 
 export function createCampaignRoutes() {
@@ -73,6 +81,96 @@ export function createCampaignRoutes() {
 			.returning()
 		if (!updated) throw new NotFoundError('Campaign', id)
 		return c.json(updated)
+	})
+
+	// Save the email creative. Any edit clears a previous approval.
+	router.put('/:id/creative', validate('json', creativeUpdate), async (c) => {
+		const db = c.var.db
+		const tenantId = c.get('tenantId')!
+		const id = c.req.param('id')
+		const data = c.req.valid('json')
+
+		const fields = {
+			brandKey: data.brandKey,
+			subject: data.subject,
+			previewText: data.previewText ?? null,
+			bodyHtml: data.bodyHtml ?? null,
+			bodyText: data.bodyText,
+			audienceSpec: data.audienceSpec ?? null,
+		}
+		const contentHash = await computeContentHash(fields)
+
+		const [updated] = await db
+			.update(campaigns)
+			.set({
+				...fields,
+				contentHash,
+				approvalStatus: 'draft',
+				approvedBy: null,
+				approvedAt: null,
+				approvedHash: null,
+				updatedAt: new Date(),
+			})
+			.where(and(eq(campaigns.id, id), eq(campaigns.tenantId, tenantId)))
+			.returning()
+		if (!updated) throw new NotFoundError('Campaign', id)
+		return c.json({ ...updated, blockers: approvalBlockers(updated) })
+	})
+
+	// Creative preview (HTML) for review before approval.
+	router.get('/:id/preview', async (c) => {
+		const db = c.var.db
+		const tenantId = c.get('tenantId')!
+		const id = c.req.param('id')
+		const [campaign] = await db.select().from(campaigns).where(and(eq(campaigns.id, id), eq(campaigns.tenantId, tenantId)))
+		if (!campaign) throw new NotFoundError('Campaign', id)
+		return c.html(renderCreativePreviewHtml(campaign))
+	})
+
+	// Approve. Human only: no MCP tool calls this, and the caller must be on the
+	// APPROVER_USER_IDS allowlist. Fails closed when the allowlist is unset.
+	router.post('/:id/approve', async (c) => {
+		const db = c.var.db
+		const tenantId = c.get('tenantId')!
+		const id = c.req.param('id')
+		const userId = c.get('userId')
+		if (!isApprover(userId, c.env.APPROVER_USER_IDS)) {
+			throw new ForbiddenError('Only a configured approver can approve campaigns')
+		}
+		const [campaign] = await db.select().from(campaigns).where(and(eq(campaigns.id, id), eq(campaigns.tenantId, tenantId)))
+		if (!campaign) throw new NotFoundError('Campaign', id)
+
+		const blockers = approvalBlockers(campaign)
+		if (blockers.length > 0) return c.json({ error: 'Campaign is not approvable', blockers }, 422)
+
+		const hash = await computeContentHash(campaign)
+		const body = await c.req.json<{ contentHash?: string }>().catch(() => ({} as { contentHash?: string }))
+		if (!body.contentHash || body.contentHash !== hash) {
+			return c.json({ error: 'contentHash must match the current creative (review the latest preview)', contentHash: hash }, 409)
+		}
+
+		const [approved] = await db
+			.update(campaigns)
+			.set({ approvalStatus: 'approved', approvedBy: userId!, approvedAt: new Date(), approvedHash: hash, contentHash: hash, updatedAt: new Date() })
+			.where(and(eq(campaigns.id, id), eq(campaigns.tenantId, tenantId)))
+			.returning()
+		return c.json(approved)
+	})
+
+	router.post('/:id/reject', async (c) => {
+		const db = c.var.db
+		const tenantId = c.get('tenantId')!
+		const id = c.req.param('id')
+		if (!isApprover(c.get('userId'), c.env.APPROVER_USER_IDS)) {
+			throw new ForbiddenError('Only a configured approver can reject campaigns')
+		}
+		const [rejected] = await db
+			.update(campaigns)
+			.set({ approvalStatus: 'rejected', approvedBy: null, approvedAt: null, approvedHash: null, updatedAt: new Date() })
+			.where(and(eq(campaigns.id, id), eq(campaigns.tenantId, tenantId)))
+			.returning()
+		if (!rejected) throw new NotFoundError('Campaign', id)
+		return c.json(rejected)
 	})
 
 	return router

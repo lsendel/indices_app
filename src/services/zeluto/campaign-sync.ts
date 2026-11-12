@@ -5,8 +5,10 @@ export interface CampaignSyncInput {
 	name: string
 	goal: string
 	channels: string[]
-	action?: 'create' | 'send' | 'schedule'
-	scheduledAt?: string
+	/** Only 'create' is allowed from Indices: sending happens behind Zeluto's own send gate. */
+	action?: 'create'
+	/** Must be an approved Indices campaign id; unapproved creative is never synced. */
+	approvedCampaignId?: string
 }
 
 export interface CampaignSyncResult {
@@ -28,21 +30,14 @@ export async function syncCampaign(
 	client: ZelutoClient,
 	input: CampaignSyncInput,
 ): Promise<CampaignSyncResult> {
+	const action = (input as { action?: string }).action
+	if (action === 'send' || action === 'schedule') {
+		throw new Error('Indices cannot send or schedule: sends go through the Zeluto send gate')
+	}
 	const campaign = await client.createCampaign({
 		name: input.name,
 		description: input.goal,
 		type: mapChannelToZelutoCampaignType(input.channels),
 	})
-
-	let status = campaign.status
-
-	if (input.action === 'send') {
-		const sent = await client.sendCampaign(campaign.id)
-		status = sent.status
-	} else if (input.action === 'schedule' && input.scheduledAt) {
-		const scheduled = await client.scheduleCampaign(campaign.id, input.scheduledAt)
-		status = scheduled.status
-	}
-
-	return { zelutoCampaignId: campaign.id, status }
+	return { zelutoCampaignId: campaign.id, status: campaign.status }
 }

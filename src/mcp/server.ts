@@ -1,3 +1,5 @@
+import { creativeUpdate } from '../services/campaigns/creative'
+import { handleCreateCampaignDraft, handleUpdateCampaignCreative, handleGetCampaignPreview, handleListCampaigns } from './tools/campaigns'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { z } from 'zod'
 import type { Database } from '../db/client'
@@ -22,6 +24,10 @@ const TOOL_DEFINITIONS = [
 	'get_loop_status',
 	'get_prompt_lineage',
 	'get_loop_insights',
+	'create_campaign_draft',
+	'update_campaign_creative',
+	'get_campaign_preview',
+	'list_campaigns',
 ] as const
 
 export function getMcpToolNames(): string[] {
@@ -118,6 +124,46 @@ export function createMcpServer(db?: Database, provider?: LLMProvider): McpServe
 		async (input) => {
 			if (!provider) return jsonResult({ error: 'No LLM provider configured' })
 			return jsonResult(await handleGenerateWorkflow(input.goal, provider))
+		},
+	)
+
+	server.tool(
+		'create_campaign_draft',
+		'Create an email campaign draft (creative + audience spec). Drafts cannot send; a human must approve in Indices.',
+		{ tenantId: z.string().uuid(), name: z.string().min(1).max(200), goal: z.string().min(1).max(200), creative: creativeUpdate },
+		async (input) => {
+			if (!db) return noDb()
+			return jsonResult(await handleCreateCampaignDraft(db, input.tenantId, { name: input.name, goal: input.goal, creative: input.creative }))
+		},
+	)
+
+	server.tool(
+		'update_campaign_creative',
+		'Edit campaign creative. Editing clears any prior approval.',
+		{ tenantId: z.string().uuid(), campaignId: z.string().uuid(), creative: creativeUpdate },
+		async (input) => {
+			if (!db) return noDb()
+			return jsonResult(await handleUpdateCampaignCreative(db, input.tenantId, input.campaignId, input.creative))
+		},
+	)
+
+	server.tool(
+		'get_campaign_preview',
+		'Get campaign creative, content hash, approval status and approval blockers',
+		{ tenantId: z.string().uuid(), campaignId: z.string().uuid() },
+		async (input) => {
+			if (!db) return noDb()
+			return jsonResult(await handleGetCampaignPreview(db, input.tenantId, input.campaignId))
+		},
+	)
+
+	server.tool(
+		'list_campaigns',
+		'List campaigns with approval status',
+		{ tenantId: z.string().uuid(), limit: z.number().int().min(1).max(100).default(20) },
+		async (input) => {
+			if (!db) return noDb()
+			return jsonResult(await handleListCampaigns(db, input.tenantId, input.limit))
 		},
 	)
 

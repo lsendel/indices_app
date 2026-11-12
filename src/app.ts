@@ -31,6 +31,9 @@ export type Bindings = {
 	ZELUTO_TENANT_CONTEXT?: string
 	ZELUTO_API_KEY?: string
 	ZELUTO_WEBHOOK_SECRET?: string
+	ZELUTO_PULL_TOKEN?: string
+	ZELUTO_PULL_TENANT_ID?: string
+	APPROVER_USER_IDS?: string
 	META_APP_ID?: string
 	META_APP_SECRET?: string
 	TIKTOK_CLIENT_KEY?: string

@@ -183,14 +183,20 @@ export function createZelutoRoutes() {
 			.where(and(eq(campaigns.id, data.campaignId), eq(campaigns.tenantId, tenantId)))
 
 		if (!campaign) throw new NotFoundError('Campaign', data.campaignId)
+		if (data.action === 'send' || data.action === 'schedule') {
+			return c.json({ error: 'Indices cannot send or schedule campaigns; sending happens behind the Zeluto send gate' }, 422)
+		}
+		if (campaign.approvalStatus !== 'approved' || !campaign.approvedHash) {
+			return c.json({ error: 'Campaign must be approved in Indices before it can be synced to Zeluto' }, 422)
+		}
 
 		const { syncLogId, result } = await logSync(db, tenantId, 'campaign', async () => {
 			const r = await syncCampaign(client, {
 				name: campaign.name,
 				goal: campaign.goal,
 				channels: (campaign.channelsRequested as string[]) ?? ['email'],
-				action: data.action,
-				scheduledAt: data.scheduledAt,
+				action: 'create',
+				approvedCampaignId: campaign.id,
 			})
 			return { externalId: String(r.zelutoCampaignId), result: r }
 		})

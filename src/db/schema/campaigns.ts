@@ -12,6 +12,20 @@ export const campaigns = pgTable('campaigns', {
   }).default('pending').notNull(),
   channelsRequested: jsonb('channels_requested').default([]).notNull(),
   metadata: jsonb('metadata').default({}).notNull(),
+  // Creative + approval (email). Approval is human-only and bound to contentHash.
+  brandKey: text('brand_key'),
+  subject: text('subject'),
+  previewText: text('preview_text'),
+  bodyHtml: text('body_html'),
+  bodyText: text('body_text'),
+  audienceSpec: jsonb('audience_spec'),
+  contentHash: text('content_hash'),
+  approvalStatus: text('approval_status', {
+    enum: ['draft', 'approved', 'rejected'],
+  }).default('draft').notNull(),
+  approvedBy: text('approved_by'),
+  approvedAt: timestamp('approved_at', { withTimezone: true }),
+  approvedHash: text('approved_hash'),
   startedAt: timestamp('started_at', { withTimezone: true }),
   completedAt: timestamp('completed_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
@@ -20,6 +34,7 @@ export const campaigns = pgTable('campaigns', {
   index('idx_campaigns_tenant').on(table.tenantId),
   index('idx_campaigns_status').on(table.status),
   index('idx_campaigns_created').on(table.createdAt),
+  index('idx_campaigns_approval').on(table.tenantId, table.approvalStatus),
 ])
 
 export const channelResults = pgTable('channel_results', {
