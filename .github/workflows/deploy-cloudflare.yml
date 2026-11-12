@@ -1,8 +1,11 @@
 name: Deploy to Cloudflare
 
+# Merging to main only runs tests. Migrate + deploy run ONLY from a manual
+# workflow_dispatch (Luis approves each production schema change + deploy).
 on:
   push:
     branches: [main]
+  workflow_dispatch:
 
 jobs:
   test:
@@ -14,6 +17,7 @@ jobs:
       - run: bun test run
 
   migrate:
+    if: github.event_name == 'workflow_dispatch'
     needs: test
     runs-on: ubuntu-latest
     steps:
