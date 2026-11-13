@@ -13,6 +13,7 @@ import type {
 	ZelutoWebhookCreate,
 	ZelutoWebhook,
 	ZelutoTenantContext,
+	ZelutoIndicesCampaignStats,
 } from '../../types/zeluto'
 
 export interface ZelutoClientConfig {
@@ -96,6 +97,11 @@ export class ZelutoClient {
 
 	async getCampaignStats(id: number): Promise<ZelutoCampaignStats> {
 		return this.request('GET', `/campaign/campaigns/${id}/stats`)
+	}
+
+	/** Rollup for an approved Indices campaign that Zeluto ingested (looked up by the Indices id). */
+	async getIndicesCampaignStats(indicesCampaignId: string): Promise<ZelutoIndicesCampaignStats> {
+		return this.request('GET', `/delivery/indices-campaigns/by-indices-id/${encodeURIComponent(indicesCampaignId)}/stats`)
 	}
 
 	// Contacts

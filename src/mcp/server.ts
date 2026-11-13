@@ -1,4 +1,6 @@
 import { creativeUpdate } from '../services/campaigns/creative'
+import { handleGetCampaignStats } from './tools/campaign-stats'
+import type { ZelutoClient } from '../services/zeluto/client'
 import { handleCreateCampaignDraft, handleUpdateCampaignCreative, handleGetCampaignPreview, handleListCampaigns } from './tools/campaigns'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { z } from 'zod'
@@ -28,6 +30,7 @@ const TOOL_DEFINITIONS = [
 	'update_campaign_creative',
 	'get_campaign_preview',
 	'list_campaigns',
+	'get_campaign_stats',
 ] as const
 
 export function getMcpToolNames(): string[] {
@@ -42,7 +45,11 @@ function noDb() {
 	return jsonResult({ error: 'No database connection' })
 }
 
-export function createMcpServer(db?: Database, provider?: LLMProvider): McpServer {
+export function createMcpServer(
+	db?: Database,
+	provider?: LLMProvider,
+	getZelutoClient?: (tenantId: string) => Promise<ZelutoClient>,
+): McpServer {
 	const server = new McpServer({
 		name: 'indices-intelligence',
 		version: '1.0.0',
@@ -164,6 +171,16 @@ export function createMcpServer(db?: Database, provider?: LLMProvider): McpServe
 		async (input) => {
 			if (!db) return noDb()
 			return jsonResult(await handleListCampaigns(db, input.tenantId, input.limit))
+		},
+	)
+
+	server.tool(
+		'get_campaign_stats',
+		'Get Zeluto delivery results (sent, delivered, bounces, complaints, unsubscribes, pause reason) for an approved campaign',
+		{ tenantId: z.string().uuid(), campaignId: z.string().uuid() },
+		async (input) => {
+			if (!db) return noDb()
+			return jsonResult(await handleGetCampaignStats(db, input.tenantId, input.campaignId, getZelutoClient))
 		},
 	)
 
