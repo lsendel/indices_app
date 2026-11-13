@@ -1,19 +1,33 @@
 name = "indices-api"
 main = "src/index.ts"
-compatibility_date = "2025-12-01"
+compatibility_date = "2026-08-29"
 compatibility_flags = ["nodejs_compat"]
+# Live route is api.indices.app/* only. indices.app/* is served by the
+# separate indices-frontend worker, so it is not claimed here.
 routes = [
   { pattern = "api.indices.app/*", zone_name = "indices.app" },
-  { pattern = "indices.app/*", zone_name = "indices.app" },
 ]
 
+# Reconciled with the live indices-api worker (Cloudflare settings read on
+# 2026-11-12). Plain vars only; secrets are never stored here.
 [vars]
 ENVIRONMENT = "production"
 BETTER_AUTH_URL = "https://api.indices.app"
 CORS_ORIGINS = "https://indices.app"
+AUTH_COOKIE_DOMAIN = ".indices.app"
+DKIM_SELECTOR = "mailchannels"
+FC_EXPORT_SITE_ID = "d6090c06-71aa-49df-abbc-3c2e9c3d5956"
+FC_EXPORT_TENANT_ID = "e08910dd-780c-4b01-8b85-beabc7d40231"
+MAIL_FROM_EMAIL = "noreply@indices.app"
+MAIL_FROM_NAME = "Indices"
+
+# Live binding. Keep it so a deploy does not drop it.
+[[hyperdrive]]
+binding = "HYPERDRIVE"
+id = "944ec8f3adbc4a32b08f5bbb8279236e"
 
 # Secrets (set via `wrangler secret put <NAME>`):
-# DATABASE_URL, BETTER_AUTH_SECRET, OPENAI_API_KEY, ANTHROPIC_API_KEY,
+# DATABASE_URL (needed by the current code: neon-http), BETTER_AUTH_SECRET, OPENAI_API_KEY, ANTHROPIC_API_KEY,
 # GEMINI_API_KEY, PERPLEXITY_API_KEY, GROK_API_KEY, HUGGINGFACE_API_KEY,
 # SENDGRID_API_KEY, TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER,
 # SCRAPER_SHARED_SECRET, SCRAPER_WORKER_URL,
