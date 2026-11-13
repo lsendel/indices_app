@@ -9,9 +9,9 @@ import { enrichArticles } from '../../src/services/scraper/enrichment'
 import type { LLMProvider } from '../../src/adapters/llm/types'
 
 describe('Phase 6 Integration: MCP + SSE + Pipeline', () => {
-	it('MCP server exposes all 15 intelligence tools', () => {
+	it('MCP server exposes all 16 intelligence tools', () => {
 		const names = getMcpToolNames()
-		expect(names).toHaveLength(15)
+		expect(names).toHaveLength(16)
 		expect(names).toEqual(expect.arrayContaining([
 			'get_sentiment_analysis', 'get_hot_accounts', 'generate_persona',
 			'score_lead', 'get_experiment_allocation', 'get_competitive_intel',

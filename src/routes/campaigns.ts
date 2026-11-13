@@ -11,6 +11,8 @@ import {
 	isApprover,
 	renderCreativePreviewHtml,
 } from '../services/campaigns/creative'
+import { handleGetCampaignStats } from '../mcp/tools/campaign-stats'
+import { getClientForTenant } from './zeluto'
 import { ForbiddenError } from '../types/errors'
 import { NotFoundError } from '../types/errors'
 
@@ -125,6 +127,13 @@ export function createCampaignRoutes() {
 		const [campaign] = await db.select().from(campaigns).where(and(eq(campaigns.id, id), eq(campaigns.tenantId, tenantId)))
 		if (!campaign) throw new NotFoundError('Campaign', id)
 		return c.html(renderCreativePreviewHtml(campaign))
+	})
+
+	// Delivery results from Zeluto for an approved campaign (read-only).
+	router.get('/:id/stats', async (c) => {
+		const result = await handleGetCampaignStats(c.var.db, c.get('tenantId')!, c.req.param('id'), (t) => getClientForTenant(t, c.var.db, c.env))
+		if ('error' in result) throw new NotFoundError('Campaign', c.req.param('id'))
+		return c.json(result)
 	})
 
 	// Approve. Human only: no MCP tool calls this, and the caller must be on the

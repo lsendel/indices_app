@@ -7,6 +7,8 @@ import { handleGeneratePersona } from '../mcp/tools/personas'
 import { handleGetExperimentAllocation } from '../mcp/tools/experiments'
 import { handleAuditBrandContent } from '../mcp/tools/brand'
 import { handleGenerateWorkflow } from '../mcp/tools/workflows'
+import { handleGetCampaignStats } from '../mcp/tools/campaign-stats'
+import { getClientForTenant } from './zeluto'
 import { handleCreateCampaignDraft, handleUpdateCampaignCreative, handleGetCampaignPreview, handleListCampaigns } from '../mcp/tools/campaigns'
 import { createLLMRouterFromConfig } from '../adapters/llm/factory'
 import { handleGetLoopStatus, handleGetPromptLineage, handleGetLoopInsights } from '../mcp/tools/loops'
@@ -26,6 +28,7 @@ const TOOL_DESCRIPTIONS: Record<string, string> = {
 	update_campaign_creative: 'Edit campaign creative (clears approval)',
 	get_campaign_preview: 'Get campaign creative, hash, approval status and blockers',
 	list_campaigns: 'List campaigns with approval status',
+	get_campaign_stats: 'Get Zeluto delivery results for an approved campaign',
 	get_loop_insights: 'Get aggregated loop intelligence insights over a time period',
 }
 
@@ -66,6 +69,7 @@ export function createMcpRoutes() {
 			update_campaign_creative: () => handleUpdateCampaignCreative(db, tenantId, args.campaignId as string, args.creative as any),
 			get_campaign_preview: () => handleGetCampaignPreview(db, tenantId, args.campaignId as string),
 			list_campaigns: () => handleListCampaigns(db, tenantId, (args.limit as number) ?? 20),
+			get_campaign_stats: () => handleGetCampaignStats(db, tenantId, args.campaignId as string, (t) => getClientForTenant(t, db, c.env)),
 			generate_workflow: () => handleGenerateWorkflow(args.goal as string, provider),
 			get_loop_status: () => handleGetLoopStatus(db, tenantId),
 			get_prompt_lineage: () => handleGetPromptLineage(db, args.channel as string, tenantId),

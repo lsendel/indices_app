@@ -26,7 +26,7 @@ import { syncCampaign } from '../services/zeluto/campaign-sync'
 import { syncExperiment } from '../services/zeluto/experiment-sync'
 import { syncContacts, type ProspectData } from '../services/zeluto/contact-sync'
 
-async function getClientForTenant(tenantId: string, db: Database, env: Bindings): Promise<ZelutoClient> {
+export async function getClientForTenant(tenantId: string, db: Database, env: Bindings): Promise<ZelutoClient> {
 	const [zelutoConfig] = await db
 		.select()
 		.from(zelutoConfigs)

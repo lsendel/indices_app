@@ -193,3 +193,21 @@ export const zelutoErrorResponse = z.object({
 	details: z.record(z.string(), z.unknown()).optional(),
 })
 export type ZelutoErrorResponse = z.infer<typeof zelutoErrorResponse>
+
+export interface ZelutoIndicesCampaignStats {
+	indicesCampaignId: string
+	audienceCount?: number | null
+	stats: {
+		sent: number
+		delivered: number
+		bounced: number
+		complained: number
+		unsubscribed: number
+		opened: number
+		clicked: number
+		bounceRate: number
+		complaintRate: number
+	} | null
+	status: string
+	pauseReason?: string | null
+}
