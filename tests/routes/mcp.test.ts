@@ -57,6 +57,16 @@ describe('MCP routes', () => {
 		expect(body.result).toBeDefined()
 	})
 
+	it('get_campaign_stats rejects a non-UUID campaignId before touching the db', async () => {
+		const res = await app.request('/mcp/call', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ tool: 'get_campaign_stats', arguments: { campaignId: "1' OR 1=1" } }),
+		})
+		const body = await res.json()
+		expect(body.result).toEqual({ error: 'campaignId must be a UUID' })
+	})
+
 	it('POST /call returns 404 for unknown tool', async () => {
 		const res = await app.request('/mcp/call', {
 			method: 'POST',
