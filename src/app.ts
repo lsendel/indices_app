@@ -3,6 +3,7 @@ import { requestId } from './middleware/request-id'
 import { errorHandler } from './middleware/error-handler'
 import { corsMiddleware } from './middleware/cors'
 import { registerRoutes } from './routes'
+import { getMcpToolNames } from './mcp/server'
 import { createDb, type Database } from './db/client'
 import { createAuth } from './auth'
 import { landingPage, loginPage, dashboardPage } from './pages'
@@ -99,6 +100,21 @@ export function createApp() {
 
 	// Health check
 	app.get('/health', (c) => c.json({ status: 'ok', timestamp: new Date().toISOString() }))
+
+	// Metadata only, outside the authenticated /api/v1/* routes. This is a
+	// REST facade, not an MCP Streamable HTTP transport or JSON-RPC endpoint.
+	app.get('/.well-known/mcp.json', (c) => c.json({
+		name: 'indices-intelligence',
+		status: 'rest-facade',
+		description: 'Authenticated REST tool facade. Native MCP transport is not exposed over HTTP.',
+		mcpTransportAvailable: false,
+		restApi: {
+			toolsUrl: 'https://api.indices.app/api/v1/mcp/tools',
+			callUrl: 'https://api.indices.app/api/v1/mcp/call',
+			authentication: 'Better Auth session or bearer session token',
+			toolCount: getMcpToolNames().length,
+		},
+	}, 200, { 'cache-control': 'public, max-age=300' }))
 
 	// Frontend pages (served on indices.app)
 	app.get('/', (c) => c.html(landingPage()))
