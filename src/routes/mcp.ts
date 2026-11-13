@@ -1,4 +1,5 @@
 import { Hono } from 'hono'
+import { z } from 'zod'
 import type { AppEnv } from '../app'
 import { getMcpToolNames } from '../mcp/server'
 import { handleGetSentimentAnalysis, handleGetCompetitiveIntel } from '../mcp/tools/sentiment'
@@ -69,7 +70,11 @@ export function createMcpRoutes() {
 			update_campaign_creative: () => handleUpdateCampaignCreative(db, tenantId, args.campaignId as string, args.creative as any),
 			get_campaign_preview: () => handleGetCampaignPreview(db, tenantId, args.campaignId as string),
 			list_campaigns: () => handleListCampaigns(db, tenantId, (args.limit as number) ?? 20),
-			get_campaign_stats: () => handleGetCampaignStats(db, tenantId, args.campaignId as string, (t) => getClientForTenant(t, db, c.env)),
+			get_campaign_stats: async () => {
+				const id = z.string().uuid().safeParse(args.campaignId)
+				if (!id.success) return { error: 'campaignId must be a UUID' }
+				return handleGetCampaignStats(db, tenantId, id.data, (t) => getClientForTenant(t, db, c.env))
+			},
 			generate_workflow: () => handleGenerateWorkflow(args.goal as string, provider),
 			get_loop_status: () => handleGetLoopStatus(db, tenantId),
 			get_prompt_lineage: () => handleGetPromptLineage(db, args.channel as string, tenantId),
